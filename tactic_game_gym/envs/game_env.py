@@ -1014,7 +1014,7 @@ class Game_Env_v0(Base_Env):
 		self.reset_web()
 		self.set_board()
 		done = self.end()
-		if t>=self.terminate_turn or self.end():
+		if self.t>=self.terminate_turn or self.end():
 			done = True
 		self.t += 1
 		self.finishe_sides[...] = 0
