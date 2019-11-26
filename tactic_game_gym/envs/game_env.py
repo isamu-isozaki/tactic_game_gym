@@ -3,15 +3,16 @@ from tactic_game_gym.envs.player import Player
 from tactic_game_gym.envs.game_args import game_args_parser
 from tactic_game_gym.envs._map_generating_methods import diamond_square
 
-import random, time, os, logging, pygame, pymunk, sys, time, cv2
+import random, time, os, logging, pymunk, sys, time, cv2
 from gym import spaces
 import numpy as np
 from tqdm import tqdm
 import itertools
 import matplotlib.pyplot as plt
 from matplotlib.patches import Circle
+
+import pygame
 from pygame.locals import *
-from pymunk.pygame_util import DrawOptions
 
 
 def sigmoid(x, derivative=False):
@@ -28,6 +29,11 @@ class Game_Env_v0(Base_Env):
 		#Thanks https://stackoverflow.com/questions/5624912/kwargs-parsing-best-practice
 		self.side = 0
 		self.start = time.time()
+		if self.show:
+			pygame.init()
+			self.screen = pygame.display.set_mode([self.board_size, self.board_size])
+			self.clock = pygame.time.Clock()
+		self.started = False#check if game has started
 		self.finished_side = np.zeros(self.sides)
 		self.t = 0
 		super(Game_Env_v0, self).__init__()
@@ -74,7 +80,7 @@ class Game_Env_v0(Base_Env):
 
 		self.cos = np.cos(self.angle_map)
 		self.sin = np.sin(self.angle_map)
-
+		print(f"Got angle map: {time.time() - self.start}")
 		board_width = self.board_size[0]
 		board_height = self.board_size[1]
 		if rotation:
@@ -88,16 +94,20 @@ class Game_Env_v0(Base_Env):
 		players_per_side /= players_per_side.sum()
 		players_per_side *= self.max_players
 		players_per_side = players_per_side[::-1]
+		print(f"Got players per side: {time.time()-self.start}")
+
 
 		self.k = [np.random.normal(loc=0, scale=self.std_k, size = int(players_per_side[i])) for i in range(self.sides)]
 		self.k = [sigmoid(self.k[i]) for i in range(self.sides)]
 		#for i in range(self.sides):
 		#      self.k[i][...] = 1.#set to 1 for now
 		#Denotes trust
+		print(f"Finished generating k: {time.time()-self.start}")
 
 		strength_stat = [get_random_normal_with_min(self.strength*self.moves_without_attack*self.game_timestep/0.2, self.cap_prop, size = int(players_per_side[i])) for i in range(self.sides)]
 		energy_stat = [get_random_normal_with_min(self.hp, self.cap_prop, size = int(players_per_side[i])) for i in range(self.sides)]
-		#Denotes charisma + trust
+		print(f"Finished generating strength and energy: {time.time()-self.start}")
+
 
 		self.stats = [strength_stat, energy_stat, self.k]
 		#sort into the three types: cavarly, archers and infantry
@@ -294,11 +304,6 @@ class Game_Env_v0(Base_Env):
 		output = np.asarray(output)
 		return output
 	def start_game(self):
-		pygame.init()
-		self.screen = pygame.display.set_mode(self.board_size)
-		#self.surf = pygame.surfarray.make_surface(255*self.map/self.map.max())
-
-		self.clock = pygame.time.Clock()
 		self.space = pymunk.Space()
 		self.space.gravity = (0.0,0.0)
 		self.balls = []
@@ -346,15 +351,16 @@ class Game_Env_v0(Base_Env):
 		pymunk.Segment(body, (-wall_size,self.board_size[1]+wall_size), (self.board_size[0]+wall_size, self.board_size[1]+wall_size), wall_size)
 		]
 		self.space.add(*self.lines)
-		self.beautiful_map = self.map.copy()
-		self.beautiful_map = self.beautiful_map[:, ::-1]
-		self.beautiful_map -= self.beautiful_map.min()
-		self.beautiful_map *= 255/self.beautiful_map.max()
-		self.beautiful_map = cv2.applyColorMap(self.beautiful_map.astype(np.uint8), cv2.COLORMAP_VIRIDIS)
-		self.beautiful_map = cv2.cvtColor(self.beautiful_map, cv2.COLOR_RGB2BGR)
-		self.surf = pygame.surfarray.make_surface(self.beautiful_map)
-		print(f"Finished generating pygame surface: {time.time()-self.start}")
-		self.draw_options = DrawOptions(self.screen)
+		if self.show:
+			self.beautiful_map = self.map.copy()
+			self.beautiful_map = self.beautiful_map[:, ::-1]
+			self.beautiful_map -= self.beautiful_map.min()
+			self.beautiful_map *= 255/self.beautiful_map.max()
+			self.beautiful_map = cv2.applyColorMap(self.beautiful_map.astype(np.uint8), cv2.COLORMAP_VIRIDIS)
+			self.beautiful_map = cv2.cvtColor(self.beautiful_map, cv2.COLOR_RGB2BGR)
+			self.surf = pygame.surfarray.make_surface(self.beautiful_map)
+			print(f"Finished generating pygame surface: {time.time()-self.start}")
+		self.started = True
 	def sort_array(self, arr1, arr2):
 		#sort the objects in arr1 according to the indices of arr2
 		output = [None]*len(arr1)
@@ -762,14 +768,9 @@ class Game_Env_v0(Base_Env):
 
 
 		self.set_board()#update the board
-	def get_mask(self, loc, rank, dest):
-		#calculate probability of sight at destination
-		radius = self.base_vision*2**(rank-1)
-		g = np.linalg.norm(dest-loc, axis = 1) < radius
-		return g
 	def mobilize_step(self):
 		self.move()
-		self.render_pygame()
+		self.render_game()
 	def reset_web(self):
 		self.webs = []
 		for _ in range(self.player_num):
@@ -781,7 +782,10 @@ class Game_Env_v0(Base_Env):
 	def mobilize(self):
 		self.start_game()
 		print(f"Game setup completed at {time.time()-self.start}")
-		folders = os.listdir(self.base_directory + f"/animation")
+		if self.save_imgs:
+			if not os.path.exists( self.base_directory   + "/animation"):
+					os.makedirs( self.base_directory   + "/animation")
+			folders = os.listdir(self.base_directory + "/animation")
 		self.vel_mags = np.zeros(self.player_num)
 		for t in tqdm(itertools.count()):
 			try:
@@ -790,46 +794,41 @@ class Game_Env_v0(Base_Env):
 						None
 					elif event.type == pygame.QUIT:
 						break
-				if not os.path.exists( self.base_directory   + "/animation"):
-					os.makedirs( self.base_directory   + "/animation")
 				self.mobilize_step()
-				self.show_board(folder=self.base_directory   + f"/animation/animation_{len(folders)}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
+				if self.save_imgs:
+					self.show_board(folder=self.base_directory   + f"/animation/animation_{len(folders)}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
 				self.reset_web()
 				if t>=self.terminate_turn:
 					break
 			except KeyboardInterrupt:
 				break
-	def render_pygame(self):
-		self.screen.blit(self.surf, [0, 0])
-		side = self.interact_side
-		#self.screen.blit(self.surf, (0,0))
-		#draw_width = self.draw_width
-		colors = self.get_n_colors()
-		for i in range(self.sides):
-			color = colors[i]
-			for j in range(self.players_per_side[i]):
-				player = self.player_array[i][j]
-				if not player.alive or not (self.full_view or self.can_see[self.interact_side, player.id-1]):
-					continue
-				try:
-					x, y = player.vel
-					x = self.switch_to_pymunk(x)
-					y = self.switch_to_pymunk(y)
-					#This is a problem. Pygame only supports integers. Thus, animations won't be fluid
-					pygame.draw.circle(self.screen, color,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
-					pygame.draw.line(self.screen, color, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
-				except Exception as e:
-					print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+	def render_game(self):
+		if self.show:
+			self.screen.blit(self.surf, [0, 0])
+			side = self.interact_side
+			#self.screen.blit(self.surf, (0,0))
+			#draw_width = self.draw_width
+			colors = self.get_n_colors()
+			for i in range(self.sides):
+				color = colors[i]
+				for j in range(self.players_per_side[i]):
+					player = self.player_array[i][j]
+					if not player.alive or not (self.full_view or self.can_see[self.interact_side, player.id-1]):
+						continue
+					try:
+						x, y = player.vel
+						x = self.switch_to_pymunk(x)
+						y = self.switch_to_pymunk(y)
+						#This is a problem. Pygame only supports integers. Thus, animations won't be fluid
+						pygame.draw.circle(self.screen, color,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
+						pygame.draw.line(self.screen, color, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
+					except Exception as e:
+						print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
 
 
-		#self.space.debug_draw(self.draw_options)
 		self.space.step(self.game_timestep)
-
-		pygame.display.flip()
-		#Thanks https://stackoverflow.com/questions/42747905/pygame-copying-the-screen-into-an-array
-		self.view = np.array(pygame.surfarray.array2d(self.screen))
-		#plt.imshow(self.view)
-		#plt.show()
+		if self.show:
+			pygame.display.flip()
 	def attack(self, epsilon=0.0001):
 		"""
 		TODO:
@@ -949,22 +948,22 @@ class Game_Env_v0(Base_Env):
 		self.attack_turn += 1
 	def game_step(self):
 		self.move()
-		self.render_pygame()
+		self.render_game()
 		if self.t != 0 and self.t % self.moves_without_attack == 0:
 			self.attack()
 	def run_env(self):
 		"""
-		Test if environment is running properly
+		Test if environment is running properly. Show argument must be true
 		"""
 		self.start_game()
-		folders = os.listdir(self.base_directory  + "/animation")
+		if self.save_imgs:
+			if not os.path.exists( self.base_directory+ "/animation"):
+				os.makedirs( self.base_directory + "/animation")
+			folders = os.listdir(self.base_directory  + "/animation")
 		self.vel_mags = np.zeros(self.player_num)
 		start_pos = None
 		for t in tqdm(itertools.count()):
 			try:
-				if not os.path.exists( self.base_directory+ "/animation"):
-					os.makedirs( self.base_directory + "/animation")
-
 				for event in pygame.event.get():
 					if event.type == pygame.QUIT:
 						pygame.quit()
@@ -1024,6 +1023,8 @@ class Game_Env_v0(Base_Env):
 		infos = [{} for _ in range(self.sides)]
 		return self.obs, self.rewards, dones, infos
 	def step(self, action):
+		if not self.started:
+			self.start_game()
 		side = self.side
 		self.move_board[side] = cv2.resize(action, (self.board_size, self.board_size))
 		if self.save_imgs:
