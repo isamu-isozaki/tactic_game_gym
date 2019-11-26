@@ -1,6 +1,6 @@
 from gym.envs.registration import register
 
 register(
-    id='tactic_game_v0',
-    entry_point='game_env:Game_Env_v0',
+    id='tactic_game-v0',
+    entry_point='tactic_game_gym.envs:Game_Env',
 )
