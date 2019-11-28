@@ -29,6 +29,7 @@ class Game_Env_v0(Base_Env):
 		#Thanks https://stackoverflow.com/questions/5624912/kwargs-parsing-best-practice
 		self.side = 0
 		self.start = time.time()
+		self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3])
 		if self.show:
 			pygame.init()
 			self.screen = pygame.display.set_mode([self.board_size, self.board_size])
@@ -72,6 +73,19 @@ class Game_Env_v0(Base_Env):
 		for i in range(self.sides):
 			self.obs_full[i, 0] = self.map.copy()
 			self.obs[i, 0] = cv2.resize(self.map.copy(), (self.obs_board_size, self.obs_board_size))
+		
+		self.beautiful_map = self.map.copy()
+		self.beautiful_map = self.beautiful_map[:, ::-1]
+		self.beautiful_map -= self.beautiful_map.min()
+		self.beautiful_map *= 255/self.beautiful_map.max()
+		self.beautiful_map = cv2.applyColorMap(self.beautiful_map.astype(np.uint8), cv2.COLORMAP_VIRIDIS)
+		self.beautiful_map = cv2.cvtColor(self.beautiful_map, cv2.COLOR_RGB2BGR)
+		self.beautiful_output = cv2.resize(self.beautiful_map, (self.obs_board_size, self.obs_board_size))
+		self.beautiful_output = np.stack([self.beautiful_output for _ in range(self.sides)])
+		if self.show:
+			self.surf = pygame.surfarray.make_surface(self.beautiful_map)
+			print(f"Finished generating pygame surface: {time.time()-self.start}")
+
 		self.angle_map = [np.diff(self.population_map.copy(), axis=1, append=1.)[None],np.diff(self.population_map.copy(), axis=0, append=1.)[None]]
 		self.angle_map = np.concatenate(self.angle_map, axis=0)#shape is (2, 513, 513) hopefully
 		self.angle_map *= np.tan(self.max_angle)/self.angle_map.max()
@@ -351,15 +365,7 @@ class Game_Env_v0(Base_Env):
 		pymunk.Segment(body, (-wall_size,self.board_size[1]+wall_size), (self.board_size[0]+wall_size, self.board_size[1]+wall_size), wall_size)
 		]
 		self.space.add(*self.lines)
-		if self.show:
-			self.beautiful_map = self.map.copy()
-			self.beautiful_map = self.beautiful_map[:, ::-1]
-			self.beautiful_map -= self.beautiful_map.min()
-			self.beautiful_map *= 255/self.beautiful_map.max()
-			self.beautiful_map = cv2.applyColorMap(self.beautiful_map.astype(np.uint8), cv2.COLORMAP_VIRIDIS)
-			self.beautiful_map = cv2.cvtColor(self.beautiful_map, cv2.COLOR_RGB2BGR)
-			self.surf = pygame.surfarray.make_surface(self.beautiful_map)
-			print(f"Finished generating pygame surface: {time.time()-self.start}")
+		
 		self.started = True
 	def sort_array(self, arr1, arr2):
 		#sort the objects in arr1 according to the indices of arr2
@@ -1042,7 +1048,28 @@ class Game_Env_v0(Base_Env):
 		self.get_sight()
 		return self.obs
 	def render(self, mode='human', close=False):
-		picture = self.obs[self.side, 0]+self.obs[self.side]
+		self.render_output = self.beautiful_output.copy()
+		#self.screen.blit(self.surf, (0,0))
+		#draw_width = self.draw_width
+		colors = self.get_n_colors()
+		for i in range(self.sides):
+			for i2 in range(self.sides):
+				color = colors[i]
+				for j in range(self.players_per_side[i]):
+					player = self.player_array[i2][j]
+					if not player.alive or not (self.full_view or self.can_see[self.interact_side, player.id-1]):
+						continue
+					try:
+						x, y = player.vel
+						x = self.switch_to_pymunk(x)
+						y = self.switch_to_pymunk(y)
+						#This is a problem. Pygame only supports integers. Thus, animations won't be fluid
+						cv2.circle(self.render_output[i], self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1, color)
+						cv2.line(self.render_output[i], [int(x[0]), int(x[1])], [int(y[0]), int(y[1])], color)
+					except Exception as e:
+						print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+
+		return self.render_output
 	def get_sight(self):
 		living = self.get_alive_mask() == 1
 
