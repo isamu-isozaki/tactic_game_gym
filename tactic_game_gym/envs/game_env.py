@@ -62,17 +62,20 @@ class Game_Env_v0(Base_Env):
 		self.population_map = self.get_map()
 		print(f"Finished generating population map: {time.time()-self.start}")
 
-		self.action_space = spaces.Box(low=0.0, high=1.0, shape=(self.act_board_size, self.act_board_size, 2), dtype=np.float32)
+		#self.action_space = spaces.Box(low=0.0, high=1.0, shape=(self.act_board_size, self.act_board_size, 2), dtype=np.float32)
+		#The action space that I wanted
+		self.action_space = spaces.Box(low=0.0, high=1.0, shape=[self.act_board_size*self.act_board_size*2], dtype=np.float32)
+		
 		#1st screen: map(1), 2nd:hp(2) + 2*velocity(2), 3rd attack boards(1) 2 you or the enemy
-		obs_shape = (1+2+2*2+1, self.obs_board_size, self.obs_board_size)
-		obs_full_shape  = (1+2+2*2+1, *self.board_size)
+		obs_shape = (self.obs_board_size, self.obs_board_size, 1+2+2*2+1)
+		obs_full_shape  = (*self.board_size, 1+2+2*2+1)
 		self.observation_space = spaces.Box(low=0.0, high=1.0, shape=obs_shape, dtype=np.float32)
 		self.obs = np.zeros([self.sides] + list(obs_shape))
 		self.obs_full = np.zeros([self.sides] + list(obs_full_shape))
 		#setting first index to map
 		for i in range(self.sides):
-			self.obs_full[i, 0] = self.map.copy()
-			self.obs[i, 0] = cv2.resize(self.map.copy(), (self.obs_board_size, self.obs_board_size))
+			self.obs_full[i, ...,  0] = self.map.copy()
+			self.obs[i, ...,  0] = cv2.resize(self.map.copy(), (self.obs_board_size, self.obs_board_size))
 		
 		self.beautiful_map = self.map.copy()
 		self.beautiful_map = self.beautiful_map[:, ::-1]
@@ -1032,6 +1035,7 @@ class Game_Env_v0(Base_Env):
 		if not self.started:
 			self.start_game()
 		side = self.side
+		action = np.reshape(action, [self.act_board_shape, self.act_board_shape, 2])
 		self.move_board[side] = cv2.resize(action, (self.board_size, self.board_size))
 		if self.save_imgs:
 			self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
@@ -1083,16 +1087,14 @@ class Game_Env_v0(Base_Env):
 					player = self.player_array[i2][j]
 					if self.can_see[i, player.id-1]:
 						position = player.position.copy()
-						self.obs_full[i, 1, int(position[0]), int(position[1])] = player.hp if i == i2 else 0
-						self.obs_full[i, 2, int(position[0]), int(position[1])] = player.hp if i != i2 else 0
-						self.obs_full[i, 3:5, int(position[0]), int(position[1])] = player.velocity.copy() if i == i2 else [0,0]
-						self.obs_full[i, 5:7, int(position[0]), int(position[1])] = player.velocity.copy() if i != i2 else [0,0]
-						self.obs_full[i, 7, int(position[0]), int(position[1])] = self.attacked_dist[i, player.id-1]
+						self.obs_full[i, int(position[0]), int(position[1]), 1] = player.hp if i == i2 else 0
+						self.obs_full[i, int(position[0]), int(position[1]), 2] = player.hp if i != i2 else 0
+						self.obs_full[i, int(position[0]), int(position[1]), 3:5] = player.velocity.copy() if i == i2 else [0,0]
+						self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i != i2 else [0,0]
+						self.obs_full[i, int(position[0]), int(position[1]), 7] = self.attacked_dist[i, player.id-1]
 
-			transposed_obs = np.transpose(self.obs_full[i, 1:], [1, 2, 0]).copy()#changed to shape board_size, board_size, 4
-			resized_obs = cv2.resize(transposed_obs, (self.obs_board_size, self.obs_board_size))
-			resized_obs = np.transpose(resized_obs, (2, 0, 1))
-			self.obs[i, 1:] = resized_obs
+			resized_obs = cv2.resize(self.obs_full[i, ..., 1:], (self.obs_board_size, self.obs_board_size))
+			self.obs[i, ..., 1:] = resized_obs.copy()
 	def show_board(self, folder = "./animation", save = False,  step = 0, title= None):
 		if not os.path.exists(folder):
 			os.makedirs(folder)
