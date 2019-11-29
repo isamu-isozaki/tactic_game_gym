@@ -58,9 +58,11 @@ class Game_Env_v0(Base_Env):
 		board = np.zeros(self.board_size)
 		rotation = random.random() < 0.5
 		self.map = self.get_map()
-		print(f"Finished generating map: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished generating map: {time.time()-self.start}")
 		self.population_map = self.get_map()
-		print(f"Finished generating population map: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished generating population map: {time.time()-self.start}")
 
 		#self.action_space = spaces.Box(low=0.0, high=1.0, shape=(self.act_board_size, self.act_board_size, 2), dtype=np.float32)
 		#The action space that I wanted
@@ -87,7 +89,8 @@ class Game_Env_v0(Base_Env):
 		self.beautiful_output = np.stack([self.beautiful_output for _ in range(self.sides)])
 		if self.show:
 			self.surf = pygame.surfarray.make_surface(self.beautiful_map)
-			print(f"Finished generating pygame surface: {time.time()-self.start}")
+			if self.log:
+				print(f"Finished generating pygame surface: {time.time()-self.start}")
 
 		self.angle_map = [np.diff(self.population_map.copy(), axis=1, append=1.)[None],np.diff(self.population_map.copy(), axis=0, append=1.)[None]]
 		self.angle_map = np.concatenate(self.angle_map, axis=0)#shape is (2, 513, 513) hopefully
@@ -97,7 +100,8 @@ class Game_Env_v0(Base_Env):
 
 		self.cos = np.cos(self.angle_map)
 		self.sin = np.sin(self.angle_map)
-		print(f"Got angle map: {time.time() - self.start}")
+		if self.log:
+			print(f"Got angle map: {time.time() - self.start}")
 		board_width = self.board_size[0]
 		board_height = self.board_size[1]
 		if rotation:
@@ -111,7 +115,8 @@ class Game_Env_v0(Base_Env):
 		players_per_side /= players_per_side.sum()
 		players_per_side *= self.max_players
 		players_per_side = players_per_side[::-1]
-		print(f"Got players per side: {time.time()-self.start}")
+		if self.log:
+			print(f"Got players per side: {time.time()-self.start}")
 
 
 		self.k = [np.random.normal(loc=0, scale=self.std_k, size = int(players_per_side[i])) for i in range(self.sides)]
@@ -119,16 +124,19 @@ class Game_Env_v0(Base_Env):
 		#for i in range(self.sides):
 		#      self.k[i][...] = 1.#set to 1 for now
 		#Denotes trust
-		print(f"Finished generating k: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished generating k: {time.time()-self.start}")
 
 		strength_stat = [get_random_normal_with_min(self.strength*self.moves_without_attack*self.game_timestep/0.2, self.cap_prop, size = int(players_per_side[i])) for i in range(self.sides)]
 		energy_stat = [get_random_normal_with_min(self.hp, self.cap_prop, size = int(players_per_side[i])) for i in range(self.sides)]
-		print(f"Finished generating strength and energy: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished generating strength and energy: {time.time()-self.start}")
 
 
 		self.stats = [strength_stat, energy_stat, self.k]
 		#sort into the three types: cavarly, archers and infantry
-		print(f"Finished generating stats: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished generating stats: {time.time()-self.start}")
 
 		self.player_array = []
 		id = 1
@@ -152,7 +160,8 @@ class Game_Env_v0(Base_Env):
 
 		self.k_ids = np.concatenate(self.k, axis=0)
 		self.interact_side = np.random.choice(np.arange(self.sides))
-		print(f"Interact side: {self.interact_side}")
+		if self.log:
+			print(f"Interact side: {self.interact_side}")
 		for i in range(self.sides):
 			cavarly_prop = 1
 			archer_prop = 1
@@ -189,7 +198,8 @@ class Game_Env_v0(Base_Env):
 					self.player_array[i][j].max_speed *= self.cavarly_max_speed
 					self.player_array[i][j].base_vision += (self.cavarly_scale-1)#To compensate for larger size
 					self.player_array[i][j].k *= self.cavarly_k
-		print(f"Finished generating players: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished generating players: {time.time()-self.start}")
 
 		#Given the self.board_size, and the number of sides, get the position of the players
 		#Before we do anything, initially, it will simply be a random position within a given region
@@ -238,12 +248,15 @@ class Game_Env_v0(Base_Env):
 					self.player_array[i][j].position = location
 					#Thus each player will be set in a unique location
 		except Exception as e:
-			print(f"{e}")
+			if self.log:
+				print(f"{e}")
 			self.__init__(**self.kwargs)
 		"""
 		Spaceout players so there are no collisons.
 		"""
-		print(f"Finished placing players: {time.time()-self.start}")
+		if self.log:
+			if self.log:
+				print(f"Finished placing players: {time.time()-self.start}")
 
 
 		for i in range(self.sides):
@@ -258,11 +271,14 @@ class Game_Env_v0(Base_Env):
 		for _ in range(self.player_num):
 			self.mags.append(None)
 		self.det_heiarchy()
-		print(f"Finished setting heiarchy: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished setting heiarchy: {time.time()-self.start}")
 		self.set_subordinates()
-		print(f"Finished setting subordinates: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished setting subordinates: {time.time()-self.start}")
 		self.set_board()
-		print(f"Finished setting up board: {time.time()-self.start}")
+		if self.log:
+			print(f"Finished setting up board: {time.time()-self.start}")
 		self.get_sight()
 	def switch_to_pymunk(self, xy):
 		return [xy[0], -xy[1]+self.board_size[0]]
@@ -454,7 +470,8 @@ class Game_Env_v0(Base_Env):
 				try:
 					ranks = np.arange(start= self.player_ranks[i][m][0], stop = 1, step = -1)#All the ranks in the reverse order
 				except Exception as e:
-					print(f"{e}. ranks shape: {ranks.shape}. ranks: {ranks}")
+					if self.log:
+						print(f"{e}. ranks shape: {ranks.shape}. ranks: {ranks}")
 				#Does not include the rank of 1 as the lowest level does not have subordinates
 				for rank in ranks:
 					same_rank = np.where(self.player_ranks[i][m] == rank)[0]
@@ -501,7 +518,8 @@ class Game_Env_v0(Base_Env):
 						self.player_array[i][unused_k[k]].superior_id = self.player_type_array[i][m][index].superior_id
 						self.player_array[i][unused_k[k]].superior_j = self.player_type_array[i][m][index].superior_j
 					except Exception as e:
-						print(f"{e}, i: {i}, k: {k}, m: {m}, index: {index}, id: {player.id}")
+						if self.log:
+							print(f"{e}, i: {i}, k: {k}, m: {m}, index: {index}, id: {player.id}")
 				used_indices = np.asarray(used_indices)
 				while len(used_indices) > 0:
 					index = used_indices[0]
@@ -537,12 +555,14 @@ class Game_Env_v0(Base_Env):
 					self.board_sight[k, 10] = player.cos
 					self.board_sight[k, 11] = player.sin
 				except Exception as e:
-					print(f"Cosines: {player.cos}, Sine: {player.sin}")
+					if self.log:
+						print(f"Cosines: {player.cos}, Sine: {player.sin}")
 				self.board_sight[k, 12] = player.base_vision
 				try:
 					self.board_sight[k, 13:15] = self.move_board[int(player.side),int(position[0]),int(position[1])]
 				except Exception as e:
-					print(f"{e}, move board shape: {self.move_board.shape}, side: {player.side}, position: {player.position}, index: {[player.side,player.position[0],player.position[1]]}")
+					if self.log:
+						print(f"{e}, move board shape: {self.move_board.shape}, side: {player.side}, position: {player.position}, index: {[player.side,player.position[0],player.position[1]]}")
 				self.board_sight[k, 15] = player.alive
 	def return_alive(self, ids):
 		alive_index = 15
@@ -577,7 +597,8 @@ class Game_Env_v0(Base_Env):
 					alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
 					web = web[alive==1]
 				except Exception as e:
-					print(f"{e}, superior shape: {superior_pos.shape}, sub_pos shape: {sub_pos.shape}, superior id alive: {self.return_alive(player.superior_id)}, sub id alive: {self.return_alive(np.asarray(player.sub_ids))}")
+					if self.log:
+						print(f"{e}, superior shape: {superior_pos.shape}, sub_pos shape: {sub_pos.shape}, superior id alive: {self.return_alive(player.superior_id)}, sub id alive: {self.return_alive(np.asarray(player.sub_ids))}")
 
 			if web is None or web.shape[0] == 0:
 				web = None
@@ -626,13 +647,15 @@ class Game_Env_v0(Base_Env):
 		try:
 			radiis = np.diag(player.r_a/(mag*np.sqrt(2))) @ web
 		except Exception as e:
-			print(f"{e}, mag: {mag}, web: {web}")
+			if self.log:
+				print(f"{e}, mag: {mag}, web: {web}")
 		ks = np.reshape(ks, [-1])
 		ms = np.reshape(ms, [-1])
 		try:
 			force = np.diag(ks) @(web-radiis*2)- 2*np.reshape(np.sqrt(ks*(ms+player_mass)/(ms*player_mass)), (-1, 1))@np.reshape(player_velocity, (1,2))
 		except Exception as e:
-			print(f"{e}, web: {web}, web shape: {web.shape}, radiis: {radiis}, radiis shape: {radiis.shape}, ms: {ms}, ms shape: {ms.shape}, ks: {ks}, ks shape: {ks.shape}")
+			if self.log:
+				print(f"{e}, web: {web}, web shape: {web.shape}, radiis: {radiis}, radiis shape: {radiis.shape}, ms: {ms}, ms shape: {ms.shape}, ks: {ks}, ks shape: {ks.shape}")
 		# I know that deviding by the board size and all that is kind of cheating but I really didn't like the way the below things are going.
 		force = np.sum(force, axis=0)
 		"""test"""
@@ -642,7 +665,8 @@ class Game_Env_v0(Base_Env):
 		test = np.ones([1,2])
 		test = test[mask]
 		if test.shape[0] == 2:
-			print(f"force: {force}. web {web}")"""
+			if self.log:
+				print(f"force: {force}. web {web}")"""
 		above_limit = np.abs(force[np.abs(force) > self.spring_force_prop*player.force_prop])
 		if above_limit.shape[0] is not 0:
 			force /= above_limit.max()
@@ -687,7 +711,8 @@ class Game_Env_v0(Base_Env):
 			 force_angles[1]*player.cos,\
 			 player.sin])
 		except Exception as e:
-			print(f"{e}. force angles: {force_angles}, force: {force}")
+			if self.log:
+				print(f"{e}. force angles: {force_angles}, force: {force}")
 		cos_weight = -force_3d_unit[2]
 		cos_weight *= player.mass*self.g
 		force_3d = force_3d_unit*(force_mag+cos_weight)
@@ -723,8 +748,10 @@ class Game_Env_v0(Base_Env):
 		try:
 			self.move_board[self.interact_side,valid_mask] += np.einsum("...,i->...i", output, movement)[valid_mask]
 		except Exception as e:
-			print(f"{e}, move board shape: {self.move_board[self.interact_side,valid_mask].shape}, output shape: {output.shape}, movement shape: {movement.shape}")
-		print(f"self.move_board mean: {self.move_board.mean()}, start position: {start_pos}, end position: {end_pos}")
+			if self.log:
+				print(f"{e}, move board shape: {self.move_board[self.interact_side,valid_mask].shape}, output shape: {output.shape}, movement shape: {movement.shape}")
+		if self.log:
+			print(f"self.move_board mean: {self.move_board.mean()}, start position: {start_pos}, end position: {end_pos}")
 	def clear_screen(self):
 		"""
 		Call when clearing arrows. This occurs when space is pressed
@@ -751,7 +778,8 @@ class Game_Env_v0(Base_Env):
 				try:
 					self.player_array[i][j].apply_force(force, self.current_balls[k])
 				except Exception as e:
-					print(f"Exception: {e}, i: {i}, j: {j}, k: {k}, id: {player.id}, current_balls length: {len(self.current_balls)}")
+					if self.log:
+						print(f"Exception: {e}, i: {i}, j: {j}, k: {k}, id: {player.id}, current_balls length: {len(self.current_balls)}")
 				k+=1
 		k = 0
 		for i in range(self.sides):
@@ -790,7 +818,8 @@ class Game_Env_v0(Base_Env):
 		self.vel_mags[...] = 0
 	def mobilize(self):
 		self.start_game()
-		print(f"Game setup completed at {time.time()-self.start}")
+		if self.log:
+			print(f"Game setup completed at {time.time()-self.start}")
 		if self.save_imgs:
 			if not os.path.exists( self.base_directory   + "/animation"):
 					os.makedirs( self.base_directory   + "/animation")
@@ -832,7 +861,8 @@ class Game_Env_v0(Base_Env):
 						pygame.draw.circle(self.screen, color,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
 						pygame.draw.line(self.screen, color, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
 					except Exception as e:
-						print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+						if self.log:
+							print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
 
 
 		self.space.step(self.game_timestep)
@@ -879,7 +909,8 @@ class Game_Env_v0(Base_Env):
 		base_index = 12
 		attack_range = self.range_factor*np.einsum("i,i->i",attack_range_mags, self.board_sight[living, base_index])[:, None]#set max value of einsum to 1
 		#attack_range = np.ones(num_players) + 10
-		#print(f"Mean attack range: {attack_range.mean()}")
+		#if self.log:
+		# print(f"Mean attack range: {attack_range.mean()}")
 		max_attack_range = np.max(attack_range)
 		if rotation:
 			XY_rot = np.einsum("mij,m...j->i...m", rot_matrix, XY)#This step leads to duplicates forming at different locations
@@ -924,7 +955,8 @@ class Game_Env_v0(Base_Env):
 				else:
 					self.attacked[i, living_k] += player.strength
 		#Potenially slow bad but
-		#print(self.attacked)
+		#if self.log:
+		# print(self.attacked)
 		self.attacked_dist = self.attacked.copy()
 		self.can_see = self.attacked > 0
 		#can_see contains all players each side can see
@@ -986,17 +1018,21 @@ class Game_Env_v0(Base_Env):
 								start_pos = None
 						elif event.button == 4:
 							self.vec_width += self.vec_width_diff
-							print(f"Current vec width is {self.vec_width}")
+							if self.log:
+								print(f"Current vec width is {self.vec_width}")
 						elif event.button == 5:
 							self.vec_width -= self.vec_width_diff
-							print(f"Current vec width is {self.vec_width}")
+							if self.log:
+								print(f"Current vec width is {self.vec_width}")
 						elif event.button == 3:
 							self.clear_screen()
-							print(f"Cleared screen")
+							if self.log:
+								print(f"Cleared screen")
 						elif event.button == 2:
 							self.interact_side += 1
 							self.interact_side %= self.sides
-							print(f"Changed side to {self.interact_side}")
+							if self.log:
+								print(f"Changed side to {self.interact_side}")
 					else:
 						None
 
@@ -1014,8 +1050,9 @@ class Game_Env_v0(Base_Env):
 
 			except Exception as e:
 				import traceback
-				print(f"{e}")
-				print(traceback.format_exc())
+				if self.log:
+					print(f"{e}")
+					print(traceback.format_exc())
 				pygame.quit()
 				break
 	def update_step(self):
@@ -1071,7 +1108,8 @@ class Game_Env_v0(Base_Env):
 						cv2.circle(self.render_output[i], self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1, color)
 						cv2.line(self.render_output[i], [int(x[0]), int(x[1])], [int(y[0]), int(y[1])], color)
 					except Exception as e:
-						print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+						if self.log:
+							print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
 
 		return self.render_output
 	def get_sight(self):

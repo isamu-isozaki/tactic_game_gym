@@ -105,5 +105,5 @@ def game_args_parser():
 
 	parser.add_argument('--full_view', default=True, action='store_false', help='Whether to see the whole view or not')
 	parser.add_argument('--show', default=False, action='store_true', help='Whether to display the game/whether to use pygame or not')
-
+	parser.add_argument('--log', default=False, action='store_true', help='Whether to display the log not')
 	return parser
