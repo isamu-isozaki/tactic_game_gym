@@ -1,1 +1,0 @@
-from tactic_game_gym.envs.game_env import Game_Env_v0 as Game_Env

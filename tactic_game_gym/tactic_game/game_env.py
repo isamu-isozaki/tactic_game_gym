@@ -1,7 +1,7 @@
-from tactic_game_gym.envs.env_base import Base_Env
-from tactic_game_gym.envs.player import Player
-from tactic_game_gym.envs.game_args import game_args_parser
-from tactic_game_gym.envs._map_generating_methods import diamond_square
+from tactic_game_gym.tactic_game.env_base import Base_Env
+from tactic_game_gym.tactic_game.player import Player
+from tactic_game_gym.tactic_game.game_args import game_args_parser
+from tactic_game_gym.tactic_game._map_generating_methods import diamond_square
 
 import random, time, os, logging, pymunk, sys, time, cv2
 from gym import spaces
