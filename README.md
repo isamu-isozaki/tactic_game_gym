@@ -9,7 +9,7 @@ pip install -e .
 # Test environment
 Run
 ```
-python -m tactic_game_gym.envs.game --test_env --show
+python -m tactic_game_gym.tactic_game.game --test_env --show
 ```
 # Get environment
 In python code, write
