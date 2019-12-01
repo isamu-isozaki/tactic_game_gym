@@ -35,7 +35,7 @@ class Game_Env_v0(Base_Env):
 			self.screen = pygame.display.set_mode([self.board_size, self.board_size])
 			self.clock = pygame.time.Clock()
 		self.started = False#check if game has started
-		self.finished_side = np.zeros(self.sides)
+		self.finished_sides = np.zeros(self.sides)
 		self.t = 0
 		super(Game_Env_v0, self).__init__()
 		self.attack_turn = 0
@@ -1063,7 +1063,7 @@ class Game_Env_v0(Base_Env):
 		if self.t>=self.terminate_turn or self.end():
 			done = True
 		self.t += 1
-		self.finishe_sides[...] = 0
+		self.finished_sides[...] = 0
 		self.get_sight()
 		dones = [done for _ in range(self.sides)]
 		infos = [{} for _ in range(self.sides)]
@@ -1072,14 +1072,16 @@ class Game_Env_v0(Base_Env):
 		if not self.started:
 			self.start_game()
 		side = self.side
-		action = np.reshape(action, [self.act_board_shape, self.act_board_shape, 2])
-		self.move_board[side] = cv2.resize(action, (self.board_size, self.board_size))
+		action = np.reshape(action, [self.act_board_size, self.act_board_size, 2])
+		self.move_board[side] = cv2.resize(action, (self.board_size[0], self.board_size[1]))
 		if self.save_imgs:
 			self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
 			self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
 		self.finished_sides[side] = 1
-		if self.finished_side[self.finished_side == 0].shape[0] == 0:
-			self.update_step()
+		self.side += 1
+		self.side %= self.sides
+		if self.finished_sides[self.finished_sides == 0].shape[0] == 0:
+			return self.update_step()
 		return None, None, None, None
 	def reset(self):
 		self.__init__(**self.kwargs)
@@ -1087,7 +1089,7 @@ class Game_Env_v0(Base_Env):
 		self.vel_mags = np.zeros(self.player_num)
 		self.t = 0
 		self.get_sight()
-		return self.obs
+		return [self.obs]
 	def render(self, mode='human', close=False):
 		self.render_output = self.beautiful_output.copy()
 		#self.screen.blit(self.surf, (0,0))
@@ -1111,7 +1113,7 @@ class Game_Env_v0(Base_Env):
 						if self.log:
 							print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
 
-		return self.render_output
+		return [self.render_output]
 	def get_sight(self):
 		living = self.get_alive_mask() == 1
 
@@ -1124,7 +1126,9 @@ class Game_Env_v0(Base_Env):
 				for j in range(self.players_per_side[i2]):
 					player = self.player_array[i2][j]
 					if self.can_see[i, player.id-1]:
-						position = player.position.copy()
+						position = player.position
+						position = np.asarray(position)
+						position[position > self.board_size[0]-1] =  self.board_size[0]-1
 						self.obs_full[i, int(position[0]), int(position[1]), 1] = player.hp if i == i2 else 0
 						self.obs_full[i, int(position[0]), int(position[1]), 2] = player.hp if i != i2 else 0
 						self.obs_full[i, int(position[0]), int(position[1]), 3:5] = player.velocity.copy() if i == i2 else [0,0]
