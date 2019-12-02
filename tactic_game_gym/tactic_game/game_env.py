@@ -85,7 +85,7 @@ class Game_Env_v0(Base_Env):
 		self.beautiful_map *= 255/self.beautiful_map.max()
 		self.beautiful_map = cv2.applyColorMap(self.beautiful_map.astype(np.uint8), cv2.COLORMAP_VIRIDIS)
 		self.beautiful_map = cv2.cvtColor(self.beautiful_map, cv2.COLOR_RGB2BGR)
-		self.beautiful_output = cv2.resize(self.beautiful_map, (self.obs_board_size, self.obs_board_size))
+		self.beautiful_output = np.copy(self.beautiful_map)
 		self.beautiful_output = np.stack([self.beautiful_output for _ in range(self.sides)])
 		if self.show:
 			self.surf = pygame.surfarray.make_surface(self.beautiful_map)
@@ -975,7 +975,7 @@ class Game_Env_v0(Base_Env):
 				k += 1
 		total_death = np.sum(self.dead)
 		for i in range(self.sides):
-			self.rewards[i] = total_death - self.dead[i]
+			self.rewards[i] = total_death - 2*self.dead[i]#how many more died then your side
 		for i in range(self.sides):
 			for j in range(self.players_per_side[i]):
 				if self.player_array[i][j].alive and self.player_array[i][j].id in alive:
@@ -1050,9 +1050,8 @@ class Game_Env_v0(Base_Env):
 
 			except Exception as e:
 				import traceback
-				if self.log:
-					print(f"{e}")
-					print(traceback.format_exc())
+				print(f"{e}")
+				print(traceback.format_exc())
 				pygame.quit()
 				break
 	def update_step(self):
@@ -1097,21 +1096,22 @@ class Game_Env_v0(Base_Env):
 		colors = self.get_n_colors()
 		for i in range(self.sides):
 			for i2 in range(self.sides):
-				color = colors[i]
-				for j in range(self.players_per_side[i]):
+				for j in range(self.players_per_side[i2]):
 					player = self.player_array[i2][j]
-					if not player.alive or not (self.full_view or self.can_see[self.interact_side, player.id-1]):
+					if not player.alive or not (self.full_view or self.can_see[i, player.id-1]):
 						continue
 					try:
 						x, y = player.vel
 						x = self.switch_to_pymunk(x)
 						y = self.switch_to_pymunk(y)
 						#This is a problem. Pygame only supports integers. Thus, animations won't be fluid
-						cv2.circle(self.render_output[i], self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1, color)
-						cv2.line(self.render_output[i], [int(x[0]), int(x[1])], [int(y[0]), int(y[1])], color)
+						cv2.circle(self.render_output[i], tuple(self.switch_to_pymunk([int(player.position[0]), int(player.position[1])])), int(player.radius) if int(player.radius) > 0 else 1, tuple([int(m) for m in colors[i2]]))
+						cv2.line(self.render_output[i], tuple([int(x[0]), int(x[1])]), tuple([int(y[0]), int(y[1])]), tuple([int(m) for m in colors[i2]]))
 					except Exception as e:
-						if self.log:
-							print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+						print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+						import traceback
+
+						print(traceback.format_exc())
 
 		return [self.render_output]
 	def get_sight(self):
