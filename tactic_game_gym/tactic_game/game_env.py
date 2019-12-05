@@ -64,9 +64,9 @@ class Game_Env_v0(Base_Env):
 		if self.log:
 			print(f"Finished generating population map: {time.time()-self.start}")
 
-		#self.action_space = spaces.Box(low=0.0, high=1.0, shape=(self.act_board_size, self.act_board_size, 2), dtype=np.float32)
+		#self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(self.act_board_size, self.act_board_size, 2), dtype=np.float32)
 		#The action space that I wanted
-		self.action_space = spaces.Box(low=0.0, high=1.0, shape=[self.act_board_size*self.act_board_size*2], dtype=np.float32)
+		self.action_space = spaces.Box(low=-1.0, high=1.0, shape=[self.act_board_size*self.act_board_size*2], dtype=np.float32)
 		
 		#1st screen: map(1), 2nd:hp(2) + 2*velocity(2), 3rd attack boards(1) 2 you or the enemy
 		obs_shape = (self.obs_board_size, self.obs_board_size, 1+2+2*2+1)
