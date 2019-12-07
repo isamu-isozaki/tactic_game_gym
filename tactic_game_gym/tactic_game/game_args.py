@@ -27,11 +27,10 @@ def game_args_parser():
 	parser.add_argument('--moves_without_attack', type=int, default=3, help='The number of moves without needing to attack')
 	parser.add_argument('--num_subs', type=int, default=5, help='The maximum amount of subordinates per superior')
 	parser.add_argument('--random_action', default=True, action='store_false', help='Whether the actions of the agents are random or not')
-	parser.add_argument('--base_vision', type=float, default=5, help='Mean of base vision.')#This is the same as attack range
+	parser.add_argument('--base_vision', type=float, default=20, help='Mean of base vision.')#This is the same as attack range
 	parser.add_argument('--archer_constant', type=float, default=2.0, help='The archer constant. The attack range is n times larger but the HP is n**2 times less')
 	parser.add_argument('--archer_freq', type=int, default=2, help='The frequency at which archers attack')
 	parser.add_argument('--mass', type=float, default=1.0, help='Mass of players')#This is the same as attack range
-	parser.add_argument('--spring_constant', type=float, default=1.0, help='The spring constant. This is the same for all players')
 	parser.add_argument('--atomic_radius', type=float, dest='r_a', default=3.0, help="""Semi atomic radius.
 	The true atomic radius is calculated by r+r_a""")
 	parser.add_argument('--order_constant', type=float, default=1.0, help='The max magnitude of order force')
@@ -62,9 +61,8 @@ def game_args_parser():
 
 	parser.add_argument('--player_force_prop', type=float, default=3.0, help='The coefficient of the player force')
 	parser.add_argument('--drag_force_prop', type=float, default=4.5, help='The coefficient of the drag force')
-	parser.add_argument('--spring_force_prop', type=float, default=1.0, help='The coefficient of the spring force')
-	parser.add_argument('--electro_force_prop', type=float, default=1.0, help='The coefficient of the electrostatic force')
-	parser.add_argument('--g', type=float, default=10.0, help='The gravitational constant')
+	parser.add_argument('--spring_force_prop', type=float, default=0.25, help='The coefficient of the spring force')
+	parser.add_argument('--g', type=float, default=20.0, help='The gravitational constant')
 	parser.add_argument('--max_angle', type=float, default=np.pi/3, help='The maximum angle possible for the terrain to have')
 
 
