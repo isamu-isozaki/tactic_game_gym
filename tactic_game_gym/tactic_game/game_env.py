@@ -1140,14 +1140,7 @@ class Game_Env_v0(Base_Env):
 			self.obs_full[i, ..., 1:3] /= self.hp*(1+self.rand_prop)
 			self.obs_full[i, ..., 3:7] /= self.max_speed
 			self.obs_full[i, ..., 7] /= self.strength*self.max_players*(1-1/self.sides)*self.attack_div_frac
-			"""
-			def print_obs_full_stats(m):
-				data = self.obs_full[i, ..., m]
-				size = self.obs_full[i, ..., m][self.obs_full[i, ..., m] != 0].shape
-				print(f"obs {m} data: shape: {size[0]} max: {data.max()}, min: {data.min()}, mean: {data.mean()}, std: {data.std()}")
-			for m in range(8):
-				print_obs_full_stats(m)
-			"""
+
 			resized_obs = cv2.resize(self.obs_full[i, ..., 1:], (self.obs_board_size, self.obs_board_size))
 			self.obs[i, ..., 1:] = resized_obs.copy()
 	def show_board(self, folder = "./animation", save = False,  step = 0, title= None):
