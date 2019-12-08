@@ -104,4 +104,5 @@ def game_args_parser():
 	parser.add_argument('--full_view', default=False, action='store_true', help='Whether to see the whole view or not')
 	parser.add_argument('--show', default=False, action='store_true', help='Whether to display the game/whether to use pygame or not')
 	parser.add_argument('--log', default=False, action='store_true', help='Whether to display the log not')
+	parser.add_argument('--attack_div_frac', default=0.5, type=float, help='The proportion of the maximum attack to normalize for')
 	return parser
