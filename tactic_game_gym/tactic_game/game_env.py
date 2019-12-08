@@ -1134,6 +1134,10 @@ class Game_Env_v0(Base_Env):
 						self.obs_full[i, int(position[0]), int(position[1]), 3:5] = player.velocity.copy() if i == i2 else [0,0]
 						self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i != i2 else [0,0]
 						self.obs_full[i, int(position[0]), int(position[1]), 7] = self.attacked_dist[i, player.id-1]
+			#normalize
+			self.obs_full[i, ..., 1:3] /= self.hp
+			self.obs_full[i, ..., 3:7] /= self.max_speed
+
 
 			resized_obs = cv2.resize(self.obs_full[i, ..., 1:], (self.obs_board_size, self.obs_board_size))
 			self.obs[i, ..., 1:] = resized_obs.copy()
