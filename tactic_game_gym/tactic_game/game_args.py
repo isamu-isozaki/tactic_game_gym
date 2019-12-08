@@ -13,7 +13,7 @@ def game_args_parser():
 	parser = arg_parser()
 	parser.add_argument('--save_dir', type=str, default="model", help='The save directory where the checkpoint is')
 	parser.add_argument('--use_base_dir',default=True, action='store_false', help='Use the current base directory')
-	parser.add_argument('--strength', type=float, default=0.2, help='Mean strength of player')
+	parser.add_argument('--strength', type=float, default=0.02, help='Mean strength of player')
 	parser.add_argument('--hp', type=float, default=10.0, help='The mean HP of player')
 	parser.add_argument('--std_k', type=float, default=2.0, help='Std of spring constant. Calculated by a normal distribution in sigmoid. Mean of normal is 0')
 	parser.add_argument('--rand_params', default=True, action='store_false', help='Whether to randomize parameters or not')
@@ -27,7 +27,7 @@ def game_args_parser():
 	parser.add_argument('--moves_without_attack', type=int, default=3, help='The number of moves without needing to attack')
 	parser.add_argument('--num_subs', type=int, default=5, help='The maximum amount of subordinates per superior')
 	parser.add_argument('--random_action', default=True, action='store_false', help='Whether the actions of the agents are random or not')
-	parser.add_argument('--base_vision', type=float, default=20, help='Mean of base vision.')#This is the same as attack range
+	parser.add_argument('--base_vision', type=float, default=10, help='Mean of base vision.')#This is the same as attack range
 	parser.add_argument('--archer_constant', type=float, default=2.0, help='The archer constant. The attack range is n times larger but the HP is n**2 times less')
 	parser.add_argument('--archer_freq', type=int, default=2, help='The frequency at which archers attack')
 	parser.add_argument('--mass', type=float, default=1.0, help='Mass of players')#This is the same as attack range
