@@ -67,7 +67,7 @@ class Game_Env_v0(Base_Env):
 		#self.action_space = spaces.Box(low=-1.0, high=1.0, shape=(self.act_board_size, self.act_board_size, 2), dtype=np.float32)
 		#The action space that I wanted
 		self.action_space = spaces.Box(low=-1.0, high=1.0, shape=[self.act_board_size*self.act_board_size*2], dtype=np.float32)
-		
+		self.action = np.zeros([self.sides, self.act_board_size, self.act_board_size, 2])
 		#1st screen: map(1), 2nd:hp(2) + 2*velocity(2), 3rd attack boards(1) 2 you or the enemy
 		obs_shape = (self.obs_board_size, self.obs_board_size, 1+2+2*2+1)
 		obs_full_shape  = (*self.board_size, 1+2+2*2+1)
@@ -1072,6 +1072,7 @@ class Game_Env_v0(Base_Env):
 			self.start_game()
 		side = self.side
 		action = np.reshape(action, [self.act_board_size, self.act_board_size, 2])
+		self.action[self.side] = action.copy()
 		self.move_board[side] = cv2.resize(action, (self.board_size[0], self.board_size[1]))
 		if self.save_imgs:
 			self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
@@ -1112,6 +1113,16 @@ class Game_Env_v0(Base_Env):
 						import traceback
 
 						print(traceback.format_exc())
+			arrow_size = self.board_size[0]//self.act_board_size
+			color=colors[i]
+			for a0 in range(self.act_board_size):
+				for a1 in range(self.act_board_size):
+					arrow = self.action[i, a0, a1].copy()
+					arrow *= arrow_size
+					start = self.switch_to_pymunk([a0*arrow_size, a1*arrow_size])
+					end = self.switch_to_pymunk([a0*arrow_size+int(arrow[0]), a1*arrow_size+int(arrow[1])])
+
+					cv2.arrowedLine(self.render_output[i], tuple(start), tuple(end), tuple([int(m) for m in color]))
 
 		return [self.render_output]
 	def get_sight(self, epsilon=1e-10):
@@ -1140,7 +1151,14 @@ class Game_Env_v0(Base_Env):
 			self.obs_full[i, ..., 1:3] /= self.hp*(1+self.rand_prop)
 			self.obs_full[i, ..., 3:7] /= self.max_speed
 			self.obs_full[i, ..., 7] /= self.strength*self.max_players*(1-1/self.sides)*self.attack_div_frac
-
+			"""
+			def print_obs_full_stats(m):
+				data = self.obs_full[i, ..., m]
+				size = self.obs_full[i, ..., m][self.obs_full[i, ..., m] != 0].shape
+				print(f"obs {m} data: shape: {size[0]} max: {data.max()}, min: {data.min()}, mean: {data.mean()}, std: {data.std()}")
+			for m in range(8):
+				print_obs_full_stats(m)
+			"""
 			resized_obs = cv2.resize(self.obs_full[i, ..., 1:], (self.obs_board_size, self.obs_board_size))
 			self.obs[i, ..., 1:] = resized_obs.copy()
 	def show_board(self, folder = "./animation", save = False,  step = 0, title= None):
