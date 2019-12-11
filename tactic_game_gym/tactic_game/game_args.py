@@ -13,7 +13,7 @@ def game_args_parser():
 	parser = arg_parser()
 	parser.add_argument('--save_dir', type=str, default="model", help='The save directory where the checkpoint is')
 	parser.add_argument('--use_base_dir',default=True, action='store_false', help='Use the current base directory')
-	parser.add_argument('--strength', type=float, default=0.02, help='Mean strength of player')
+	parser.add_argument('--strength', type=float, default=0.01, help='Mean strength of player')
 	parser.add_argument('--hp', type=float, default=10.0, help='The mean HP of player')
 	parser.add_argument('--std_k', type=float, default=2.0, help='Std of spring constant. Calculated by a normal distribution in sigmoid. Mean of normal is 0')
 	parser.add_argument('--rand_params', default=True, action='store_false', help='Whether to randomize parameters or not')
