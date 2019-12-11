@@ -1092,6 +1092,7 @@ class Game_Env_v0(Base_Env):
 		return [self.obs]
 	def render(self, mode='human', close=False):
 		self.render_output = self.beautiful_output.copy()
+		self.arrow_output = np.zeros_like(self.render_output)
 		#self.screen.blit(self.surf, (0,0))
 		#draw_width = self.draw_width
 		colors = self.get_n_colors()
@@ -1114,7 +1115,6 @@ class Game_Env_v0(Base_Env):
 
 						print(traceback.format_exc())
 			arrow_size = self.board_size[0]//self.act_board_size
-			color=colors[i]
 			for a0 in range(self.act_board_size):
 				for a1 in range(self.act_board_size):
 					arrow = self.action[i, a0, a1].copy()
@@ -1122,8 +1122,8 @@ class Game_Env_v0(Base_Env):
 					start = self.switch_to_pymunk([a0*arrow_size, a1*arrow_size])
 					end = self.switch_to_pymunk([a0*arrow_size+int(arrow[0]), a1*arrow_size+int(arrow[1])])
 
-					cv2.arrowedLine(self.render_output[i], tuple(start), tuple(end), tuple([int(m) for m in color]))
-
+					cv2.arrowedLine(self.arrow_output[i], tuple(start), tuple(end), (255, 255, 255))
+		self.render_output = np.concatenate([self.render_output, self.arrow_output], axis=1)
 		return [self.render_output]
 	def get_sight(self, epsilon=1e-10):
 		living = self.get_alive_mask() == 1
