@@ -1256,6 +1256,9 @@ class Game_Env_v0(Base_Env):
 	def end(self):
 		#if np.max(self.remaining_players) == np.sum(self.remaining_players):
 		#   return True#only one side remains
-		if np.sum(self.remaining_players) < np.sum(self.players_per_side)/8. or np.max(self.remaining_players) == np.sum(self.remaining_players) or self.remaining_players[self.interact_side] == 0:#If the total number is half,
+		if np.sum(self.remaining_players) < np.sum(self.players_per_side)*self.min_frac or np.max(self.remaining_players) == np.sum(self.remaining_players):#If the total number is half,
 			return True
+		for i in range(self.sides):
+			if self.remaining_players[i] < self.min_players:
+				return True
 		return False
