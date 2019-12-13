@@ -71,7 +71,7 @@ class Game_Env_v0(Base_Env):
 		#1st screen: map(1), 2nd:hp(2) + 2*velocity(2), 3rd attack boards(1) 2 you or the enemy
 		obs_shape = (self.obs_board_size, self.obs_board_size, 1+2+2*2+1)
 		obs_full_shape  = (*self.board_size, 1+2+2*2+1)
-		self.observation_space = spaces.Box(low=0.0, high=1.0, shape=obs_shape, dtype=np.float32)
+		self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=obs_shape, dtype=np.float32)
 		self.obs = np.zeros([self.sides] + list(obs_shape))
 		self.obs_full = np.zeros([self.sides] + list(obs_full_shape))
 		#setting first index to map
@@ -1072,6 +1072,7 @@ class Game_Env_v0(Base_Env):
 			self.start_game()
 		side = self.side
 		action = np.reshape(action, [self.act_board_size, self.act_board_size, 2])
+
 		self.action[self.side] = action.copy()
 		self.move_board[side] = cv2.resize(action, (self.board_size[0], self.board_size[1]))
 		if self.save_imgs:
