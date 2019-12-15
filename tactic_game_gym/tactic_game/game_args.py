@@ -98,7 +98,7 @@ def game_args_parser():
 	parser.add_argument('--passive_range', type=float,default=3, help='The minimum attack range a player can have')
 
 	parser.add_argument('--obs_board_size', type=int,default=65, help='The board size for observation board')
-	parser.add_argument('--act_board_size', type=int,default=17, help='The board size for action board')
+	parser.add_argument('--act_board_size', type=int,default=3, help='The board size for action board')
 	parser.add_argument('--map_board_size', type=int,default=65, help='The initial boardsize which will get resized')
 
 	parser.add_argument('--full_view', default=False, action='store_true', help='Whether to see the whole view or not')
