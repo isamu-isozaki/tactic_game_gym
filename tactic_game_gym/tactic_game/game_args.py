@@ -113,5 +113,5 @@ def game_args_parser():
 	parser.add_argument('--is_train', default=True, action='store_false', help='Whether the model is training or not')
 	parser.add_argument('--init_stage', default=1, type=int, help='The initial stage of action stage')
 
-	parser.add_argument('--stage_update_num', default=1e6, type=float, help='The number of moves until getting the next the step from model')
+	parser.add_argument('--stage_update_num', default=1.5e6, type=float, help='The number of moves until getting the next the step from model')
 	return parser
