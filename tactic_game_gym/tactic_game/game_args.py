@@ -98,7 +98,7 @@ def game_args_parser():
 	parser.add_argument('--passive_range', type=float,default=3, help='The minimum attack range a player can have')
 
 	parser.add_argument('--obs_board_size', type=int,default=65, help='The board size for observation board')
-	parser.add_argument('--act_board_size', type=int,default=17, help='The board size for action board')
+	parser.add_argument('--act_board_size', type=int,default=32, help='The board size for action board. Must be power of 2')
 	parser.add_argument('--map_board_size', type=int,default=65, help='The initial boardsize which will get resized')
 
 	parser.add_argument('--full_view', default=False, action='store_true', help='Whether to see the whole view or not')
@@ -108,5 +108,10 @@ def game_args_parser():
 	parser.add_argument('--min_players', default=10, type=int, help='The minimum number of players at which point the game ends')
 	parser.add_argument('--min_frac', default=1/8., type=float, help='The proportion of players at which the game ends')
 
+	parser.add_argument('--moves_without_model', default=20, type=int, help='The number of moves until getting the next the step from model')
 
+	parser.add_argument('--is_train', default=True, action='store_false', help='Whether the model is training or not')
+	parser.add_argument('--init_stage', default=1, type=int, help='The initial stage of action stage')
+
+	parser.add_argument('--stage_update_num', default=1e6, type=float, help='The number of moves until getting the next the step from model')
 	return parser

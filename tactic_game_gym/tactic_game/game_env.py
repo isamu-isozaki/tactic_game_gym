@@ -29,6 +29,11 @@ class Game_Env_v0(Base_Env):
 		#Thanks https://stackoverflow.com/questions/5624912/kwargs-parsing-best-practice
 		self.side = 0
 		self.start = time.time()
+		if self.is_train:
+			import math
+			self.total_moves = 0
+			self.stage = self.init_stage
+			self.num_stages = int(math.log(self.act_board_size, 2) - math.log(self.stage, 2))
 		self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3])
 		if self.show:
 			pygame.init()
@@ -1061,18 +1066,31 @@ class Game_Env_v0(Base_Env):
 		done = self.end()
 		if self.t>=self.terminate_turn or self.end():
 			done = True
+		
 		self.t += 1
 		self.finished_sides[...] = 0
 		self.get_sight()
 		dones = [done for _ in range(self.sides)]
 		infos = [{} for _ in range(self.sides)]
+		if self.is_train:
+			if self.stage != self.act_board_size and self.total_moves+1 % self.stage_update_num == 0:
+				self.stage *= 2
+			self.total_moves += 1
 		return self.obs, self.rewards, dones, infos
 	def step(self, action):
 		if not self.started:
 			self.start_game()
 		side = self.side
 		action = np.reshape(action, [self.act_board_size, self.act_board_size, 2])
-
+		if self.is_train:
+			size = self.act_board_size // self.stage
+			for i in range(self.stage):
+				for j in range(self.stage):
+					for k in range(2):
+						action_segment = action[size*i:size*(i+1), size*j:size*(j+1), k]
+						action_mean = action_segment.mean()
+						action_std = action_segment.std()
+						action[size*i:size*(i+1), size*j:size*(j+1), k] = np.random.normal(action_mean, action_std)
 		self.action[self.side] = action.copy()
 		self.move_board[side] = cv2.resize(action, (self.board_size[0], self.board_size[1]))
 		if self.save_imgs:
@@ -1115,13 +1133,16 @@ class Game_Env_v0(Base_Env):
 						import traceback
 
 						print(traceback.format_exc())
-			arrow_size = self.board_size[0]//self.act_board_size
-			for a0 in range(self.act_board_size):
-				for a1 in range(self.act_board_size):
-					arrow = self.action[i, a0, a1].copy()
+			arrow_size = self.board_size[0]/(self.stage*2)
+			size = self.act_board_size//self.stage
+			for a0 in range(0,self.stage):
+				for a1 in range(0,self.stage):
+					arrow = self.action[i, a0*size, a1*size].copy()
 					arrow *= arrow_size
-					start = self.switch_to_pymunk([a0*arrow_size, a1*arrow_size])
-					end = self.switch_to_pymunk([a0*arrow_size+int(arrow[0]), a1*arrow_size+int(arrow[1])])
+					x=a0*2+1
+					y=a1*2+1
+					start = self.switch_to_pymunk([int(x*arrow_size), int(y*arrow_size)])
+					end = self.switch_to_pymunk([int(x*arrow_size+arrow[0]), int(y*arrow_size+arrow[1])])
 
 					cv2.arrowedLine(self.arrow_output[i], tuple(start), tuple(end), (255, 255, 255))
 		self.render_output = np.concatenate([self.render_output, self.arrow_output], axis=1)
