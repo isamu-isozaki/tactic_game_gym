@@ -31,7 +31,8 @@ class Game_Env_v0(Base_Env):
 		self.start = time.time()
 		if self.is_train:
 			import math
-			self.total_moves = 0
+			if not hasattr(self, "total_moves"):
+				self.total_moves = 0
 			self.stage = self.init_stage
 			self.num_stages = int(math.log(self.act_board_size, 2) - math.log(self.stage, 2))
 		self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3])
