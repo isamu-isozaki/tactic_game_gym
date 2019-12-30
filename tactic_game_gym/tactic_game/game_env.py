@@ -36,8 +36,9 @@ class Game_Env_v0(Base_Env):
 			import math
 			if not hasattr(self, "total_moves"):
 				self.total_moves = 0
-			self.stage = self.init_stage
-			self.num_stages = int(math.log(self.act_board_size, 2) - math.log(self.stage, 2))
+				self.stage = self.init_stage
+				self.num_stages = int(math.log(self.act_board_size, 2) - math.log(self.stage, 2))
+
 		self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3])
 		if self.show:
 			pygame.init()
@@ -1080,7 +1081,8 @@ class Game_Env_v0(Base_Env):
 		dones = [done for _ in range(self.sides)]
 		infos = [{} for _ in range(self.sides)]
 		if self.is_train:
-			if self.stage != self.act_board_size and self.total_moves+1 % self.stage_update_num == 0:
+			if (self.stage != self.act_board_size) and ((self.total_moves+1) % self.stage_update_num == 0):
+				print(f"stage is {self.stage}")
 				self.stage *= 2
 			self.total_moves += 1
 		return self.obs, self.rewards, dones, infos
