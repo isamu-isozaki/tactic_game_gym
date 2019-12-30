@@ -101,18 +101,14 @@ class Game_Env_v0(Base_Env):
 			self.surf = pygame.surfarray.make_surface(self.beautiful_map)
 			if self.log:
 				print(f"Finished generating pygame surface: {time.time()-self.start}")
-		describe(self.map)
 		self.angle_map = [np.diff(self.map.copy(), axis=1, append=1.)[None],np.diff(self.map.copy(), axis=0, append=1.)[None]]
 		self.angle_map = np.concatenate(self.angle_map, axis=0)#shape is (2, 513, 513) hopefully
 		self.angle_map *= np.tan(self.max_angle)/self.angle_map.max()
 		self.angle_map = np.arctan(self.angle_map)#self.angle_map[0, coords] gives angle across
 		self.angle_map = np.mean(self.angle_map, axis=0)
-		describe(self.angle_map)
 
 		self.cos = np.cos(self.angle_map)
 		self.sin = np.sin(self.angle_map)
-		describe(self.cos)
-		describe(self.sin)
 		if self.log:
 			print(f"Got angle map: {time.time() - self.start}")
 		board_width = self.board_size[0]
