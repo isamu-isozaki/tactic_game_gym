@@ -718,7 +718,7 @@ class Game_Env_v0(Base_Env):
 		try:
 			force_3d_unit = np.asarray([force_angles[0]*player.cos,\
 			 force_angles[1]*player.cos,\
-			 player.sin])
+			 player.sin*np.sign(force[0]+force[1])])
 		except Exception as e:
 			if self.log:
 				print(f"{e}. force angles: {force_angles}, force: {force}")
