@@ -101,8 +101,9 @@ class Game_Env_v0(Base_Env):
 			self.surf = pygame.surfarray.make_surface(self.beautiful_map)
 			if self.log:
 				print(f"Finished generating pygame surface: {time.time()-self.start}")
-		self.angle_map = [np.diff(self.map.copy(), axis=1, append=1.)[None],np.diff(self.map.copy(), axis=0, append=1.)[None]]
-		self.angle_map = np.concatenate(self.angle_map, axis=0)#shape is (2, 513, 513) hopefully
+		self.map_diff = [np.diff(self.map.copy(), axis=1, append=1.)[None],np.diff(self.map.copy(), axis=0, append=1.)[None]]
+		self.map_diff = np.concatenate(self.map_diff, axis=0)
+		self.angle_map = self.map_diff.copy()
 		self.angle_map *= np.tan(self.max_angle)/self.angle_map.max()
 		self.angle_map = np.arctan(self.angle_map)#self.angle_map[0, coords] gives angle across
 		self.angle_map = np.mean(self.angle_map, axis=0)
@@ -709,6 +710,9 @@ class Game_Env_v0(Base_Env):
 		multiply cos alpha by the mg scalar and multiply by the unit vector
 		"""
 		position = player.position
+		position = np.asarray(position)
+		position[position > self.board_size[0]-1] =  self.board_size[0]-1
+		position = position.tolist()
 		force_mag = np.linalg.norm(force)
 		force_angles = None
 		if force_mag == 0:
@@ -716,9 +720,10 @@ class Game_Env_v0(Base_Env):
 		else:
 			force_angles = force/force_mag
 		try:
+			map_vector = self.map_diff[:, int(position[0]), int(position[1])]
 			force_3d_unit = np.asarray([force_angles[0]*player.cos,\
 			 force_angles[1]*player.cos,\
-			 player.sin*np.sign(force[0]+force[1])])
+			 np.abs(player.sin)*np.sign(np.dot(force, map_vector))])
 		except Exception as e:
 			if self.log:
 				print(f"{e}. force angles: {force_angles}, force: {force}")

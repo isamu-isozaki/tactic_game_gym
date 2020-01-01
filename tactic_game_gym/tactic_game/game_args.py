@@ -63,7 +63,7 @@ def game_args_parser():
 	parser.add_argument('--drag_force_prop', type=float, default=4.5, help='The coefficient of the drag force')
 	parser.add_argument('--spring_force_prop', type=float, default=0.25, help='The coefficient of the spring force')
 	parser.add_argument('--g', type=float, default=10.0, help='The gravitational constant')
-	parser.add_argument('--max_angle', type=float, default=np.pi/3, help='The maximum angle possible for the terrain to have')
+	parser.add_argument('--max_angle', type=float, default=np.pi/2.1, help='The maximum angle possible for the terrain to have')
 
 
 	parser.add_argument('--game_timestep', type=float, default=.2, help='The time step between each step')
