@@ -34,7 +34,7 @@ def game_args_parser():
 	parser.add_argument('--atomic_radius', type=float, dest='r_a', default=3.0, help="""Semi atomic radius.
 	The true atomic radius is calculated by r+r_a""")
 	parser.add_argument('--order_constant', type=float, default=1.0, help='The max magnitude of order force')
-	parser.add_argument('--player_force', type=float, default=3.0, help='The max magnitude of player force')
+	parser.add_argument('--player_force', type=float, default=1.0, help='The max magnitude of player force')
 	parser.add_argument('--max_speed', type=float, default=6.0, help='The max speed')
 	parser.add_argument('--range_factor', type=float, default=2.0, help='The factor by which to multiply the range by')
 	parser.add_argument('--death_penalty', type=float, default=-0.5, help='The penalty for death per player')
@@ -59,9 +59,9 @@ def game_args_parser():
 	Change below according to experiments
 	"""
 
-	parser.add_argument('--player_force_prop', type=float, default=3, help='The coefficient of the player force')
+	parser.add_argument('--player_force_prop', type=float, default=0.6, help='The coefficient of the player force')
 	parser.add_argument('--drag_force_prop', type=float, default=4.5, help='The coefficient of the drag force')
-	parser.add_argument('--spring_force_prop', type=float, default=0.25, help='The coefficient of the spring force')
+	parser.add_argument('--spring_force_prop', type=float, default=0.4, help='The coefficient of the spring force')
 	parser.add_argument('--g', type=float, default=10.0, help='The gravitational constant')
 	parser.add_argument('--max_angle', type=float, default=np.pi/2.1, help='The maximum angle possible for the terrain to have')
 

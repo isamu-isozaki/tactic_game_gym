@@ -29,6 +29,7 @@ class Game_Env_v0(Base_Env):
 		self.kwargs.update(kwargs)
 		for k,v in self.kwargs.items():
 			setattr(self, k, v)
+		
 		#Thanks https://stackoverflow.com/questions/5624912/kwargs-parsing-best-practice
 		self.side = 0
 		self.start = time.time()
@@ -51,7 +52,7 @@ class Game_Env_v0(Base_Env):
 		self.attack_turn = 0
 		assert (self.rand_prop < 1 and 0 < self.rand_prop)
 		self.board_size = [self.board_size, self.board_size]
-
+		self.player_force_prop /= np.sqrt(2)
 		self.vec_width = self.board_size[0]//self.sides#width or area of effect of vector
 
 		self.base_directory = os.getcwd()
@@ -731,7 +732,7 @@ class Game_Env_v0(Base_Env):
 		cos_weight *= player.mass*self.g
 		force_3d = force_3d_unit*(force_mag+cos_weight)
 		return force_3d[:2]
-	def interact_move(self, start_pos, end_pos):
+	def interact_move(self, start_pos, end_pos, epsilon=1e-10):
 		steps = self.vec_steps
 		start_pos = self.switch_to_pymunk(start_pos)
 		end_pos = self.switch_to_pymunk(end_pos)
@@ -740,8 +741,8 @@ class Game_Env_v0(Base_Env):
 		mag_div = self.board_size*self.vec_mag_div_constant_frac
 		movement /= mag_div
 		mag = np.linalg.norm(movement)
-		if mag > self.player_force_prop:
-			movement *= float(self.player_force_prop)/mag
+		if mag > self.player_force_prop*np.sqrt(2):
+			movement *= float(self.player_force_prop*np.sqrt(2))/mag
 		size = self.vec_width#change with scrool or up and down arrow
 		x = np.zeros(self.board_size[0])
 		y = np.zeros(self.board_size[0])
@@ -761,6 +762,7 @@ class Game_Env_v0(Base_Env):
 		valid_mask = output > 0
 		try:
 			self.move_board[self.interact_side,valid_mask] += np.einsum("...,i->...i", output, movement)[valid_mask]
+			self.move_board *= float(self.player_force_prop)/(np.abs(self.move_board+epsilon).max())
 		except Exception as e:
 			if self.log:
 				print(f"{e}, move board shape: {self.move_board[self.interact_side,valid_mask].shape}, output shape: {output.shape}, movement shape: {movement.shape}")
@@ -908,7 +910,7 @@ class Game_Env_v0(Base_Env):
 		attacked = np.zeros(num_players)
 		mags[mags == 0] = 1
 		#Here for debugging purposes
-		cos_sin = velocities / mags[:, None]
+		cos_sin = (velocities+epsilon) / (mags[:, None]+epsilon)
 		rot_matrix = np.concatenate([\
 							np.concatenate([cos_sin[:, 0, None, None],\
 											 cos_sin[:, 1, None, None]], axis = 2),\
@@ -1092,6 +1094,7 @@ class Game_Env_v0(Base_Env):
 			self.start_game()
 		side = self.side
 		action = np.reshape(action, [self.act_board_size, self.act_board_size, 2])
+		action *= self.player_force_prop
 		if self.is_train:
 			size = self.act_board_size // self.stage
 			for i in range(self.stage):
