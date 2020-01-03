@@ -21,11 +21,11 @@ def game_args_parser():
 	parser.add_argument('--cap_prop', type=float, default=0.2, help='The propotion of the std of the normal distribution for capabilities(hp, strengt)')
 	parser.add_argument('--max_players', type=int, default=1000, help='Maximum number of players per game')
 	parser.add_argument('--sides', type=int, default=2, help='The number of sides in the war')
-	parser.add_argument('--board_size', type=int, default=129, help='The number of sides in the war. Due to diamond square algorithm, must be in the form of 2^n+1')
+	parser.add_argument('--board_size', type=int, default=257, help='The number of sides in the war. Due to diamond square algorithm, must be in the form of 2^n+1')
 	parser.add_argument('--scale_fac', type=int, default=8, help='Scale down ratio for the board size')
 	parser.add_argument('--num_games', type=int, default=128, help='Number of games to play on parallel. This is something like batch size')
 	parser.add_argument('--moves_without_attack', type=int, default=3, help='The number of moves without needing to attack')
-	parser.add_argument('--num_subs', type=int, default=5, help='The maximum amount of subordinates per superior')
+	parser.add_argument('--num_subs', type=int, default=3, help='The maximum amount of subordinates per superior')
 	parser.add_argument('--random_action', default=True, action='store_false', help='Whether the actions of the agents are random or not')
 	parser.add_argument('--base_vision', type=float, default=10, help='Mean of base vision.')#This is the same as attack range
 	parser.add_argument('--archer_constant', type=float, default=2.0, help='The archer constant. The attack range is n times larger but the HP is n**2 times less')
@@ -59,14 +59,14 @@ def game_args_parser():
 	Change below according to experiments
 	"""
 
-	parser.add_argument('--player_force_prop', type=float, default=3, help='The coefficient of the player force')
+	parser.add_argument('--player_force_prop', type=float, default=3.5, help='The coefficient of the player force')
 	parser.add_argument('--drag_force_prop', type=float, default=4.5, help='The coefficient of the drag force')
 	parser.add_argument('--spring_force_prop', type=float, default=0.725, help='The coefficient of the spring force')
 	parser.add_argument('--g', type=float, default=10.0, help='The gravitational constant')
 	parser.add_argument('--max_angle', type=float, default=np.pi/2.2, help='The maximum angle possible for the terrain to have')
 
 
-	parser.add_argument('--game_timestep', type=float, default=0.2, help='The time step between each step')
+	parser.add_argument('--game_timestep', type=float, default=0.3, help='The time step between each step')
 
 	parser.add_argument('--test_env', default=False, action='store_true', help='Test if environment is running properly')
 	parser.add_argument('--attrange_div_const', type=float, default=1.0, help='The proportion of max_speed by which to divide velocity magnitude by')
