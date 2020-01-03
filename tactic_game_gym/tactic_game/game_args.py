@@ -66,7 +66,7 @@ def game_args_parser():
 	parser.add_argument('--max_angle', type=float, default=np.pi/2.2, help='The maximum angle possible for the terrain to have')
 
 
-	parser.add_argument('--game_timestep', type=float, default=.2, help='The time step between each step')
+	parser.add_argument('--game_timestep', type=float, default=0.2, help='The time step between each step')
 
 	parser.add_argument('--test_env', default=False, action='store_true', help='Test if environment is running properly')
 	parser.add_argument('--attrange_div_const', type=float, default=1.0, help='The proportion of max_speed by which to divide velocity magnitude by')
