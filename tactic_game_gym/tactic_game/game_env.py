@@ -506,7 +506,6 @@ class Game_Env_v0(Base_Env):
 
 					#The highest aptitude in the same rank has the most number of subordinates if there are remainders
 					sub_num = lower_rank_size//same_rank_size
-					print(f"sub_num is {sub_num}")
 					#The number of subordinates when not considering the remainder
 					sub_rem = lower_rank_size % same_rank_size
 					#the remainder
