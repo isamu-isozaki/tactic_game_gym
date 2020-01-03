@@ -18,7 +18,7 @@ from pygame.locals import *
 def sigmoid(x, derivative=False):
   return x*(1-x) if derivative else 1/(1+np.exp(-x))
 def describe(x):
-	arr = np.array(x)
+	x = np.array(x)
 	print(f"shape: {x.shape}, mean: {x.mean()}, std: {x.std()}, min: {x.min()}, max: {x.max()}")
 
 class Game_Env_v0(Base_Env):
@@ -171,6 +171,13 @@ class Game_Env_v0(Base_Env):
 
 		self.k_ids = np.concatenate(self.k, axis=0)
 		self.interact_side = np.random.choice(np.arange(self.sides))
+
+		self.player_forces = np.zeros(self.player_num)
+		self.web_mat = np.zeros([self.player_num, 2*self.num_subs-1, 2])
+		self.mag_mat = np.zeros([self.player_num, 2*self.num_subs-1])
+		self.k_mat = np.zeros([self.player_num, 2*self.num_subs-1])
+		self.m_mat = np.zeros([self.player_num, 2*self.num_subs-1])
+		self.r_as = np.ones([self.player_num])
 		if self.log:
 			print(f"Interact side: {self.interact_side}")
 		for i in range(self.sides):
@@ -209,6 +216,11 @@ class Game_Env_v0(Base_Env):
 					self.player_array[i][j].max_speed *= self.cavarly_max_speed
 					self.player_array[i][j].base_vision += (self.cavarly_scale-1)#To compensate for larger size
 					self.player_array[i][j].k *= self.cavarly_k
+				self.player_array[i][j].r_a /= np.sqrt(2)
+				self.player_forces[self.player_array[i][j].id-1] = self.player_array[i][j].player_force
+				self.r_as[self.player_array[i][j].id-1] = self.player_array[i][j].r_a
+			
+
 		if self.log:
 			print(f"Finished generating players: {time.time()-self.start}")
 
@@ -494,19 +506,24 @@ class Game_Env_v0(Base_Env):
 
 					#The highest aptitude in the same rank has the most number of subordinates if there are remainders
 					sub_num = lower_rank_size//same_rank_size
+					print(f"sub_num is {sub_num}")
 					#The number of subordinates when not considering the remainder
 					sub_rem = lower_rank_size % same_rank_size
 					#the remainder
 
-					self.player_type_array[i][m][same_rank[0]].sub_ids = [self.player_type_array[i][m][lower_rank[j]].id for j in range(sub_num+sub_rem)]
-					self.player_type_array[i][m][same_rank[0]].sub_js = [lower_rank[j] for j in range(sub_num+sub_rem)]
 					#The higher the aptitude, the higher the quality of troops as well
 					#the highest gets the highest number of troops as well
-					current_j = sub_num+sub_rem
-					for k in range(1, same_rank_size):#0 already done above
-						self.player_type_array[i][m][same_rank[k]].sub_ids = [self.player_type_array[i][m][lower_rank[j]].id for j in range(current_j, current_j + sub_num)]
-						self.player_type_array[i][m][same_rank[k]].sub_js = [lower_rank[j] for j in range(current_j, current_j + sub_num)]
-						current_j += sub_num
+					current_j = 0
+					for k in range(0, same_rank_size):#0 already done above
+						if sub_rem > 0:
+							self.player_type_array[i][m][same_rank[k]].sub_ids = [self.player_type_array[i][m][lower_rank[j]].id for j in range(current_j, current_j + sub_num+1)]
+							self.player_type_array[i][m][same_rank[k]].sub_js = [lower_rank[j] for j in range(current_j, current_j + sub_num+1)]
+							current_j += (sub_num+1)
+							sub_rem -= 1
+						else:
+							self.player_type_array[i][m][same_rank[k]].sub_ids = [self.player_type_array[i][m][lower_rank[j]].id for j in range(current_j, current_j + sub_num)]
+							self.player_type_array[i][m][same_rank[k]].sub_js = [lower_rank[j] for j in range(current_j, current_j + sub_num)]
+							current_j += sub_num
 					for k in range(same_rank_size):
 						for j in self.player_type_array[i][m][same_rank[k]].sub_js:
 							self.player_type_array[i][m][j].superior_id = self.player_type_array[i][m][same_rank[k]].id
@@ -541,7 +558,7 @@ class Game_Env_v0(Base_Env):
 				used_indices = []
 	def set_board(self):
 		#The board is saved in a fashion where the number of channels is detemined by the number of sides
-		self.board_sight = np.zeros([self.player_num, 16])#holds all x position, y position, rank, side, alive
+		self.board_sight = np.zeros([self.player_num, 18])#holds all x position, y position, rank, side, alive
 		for i in range(self.sides):
 			for j in range(self.players_per_side[i]):
 				position = self.player_array[i][j].position
@@ -574,9 +591,14 @@ class Game_Env_v0(Base_Env):
 				except Exception as e:
 					if self.log:
 						print(f"{e}, move board shape: {self.move_board.shape}, side: {player.side}, position: {player.position}, index: {[player.side,player.position[0],player.position[1]]}")
-				self.board_sight[k, 15] = player.alive
+				try:
+					self.board_sight[k, 15:17] = self.map_diff[:, int(position[0]), int(position[1])]
+				except Exception as e:
+					print(f"{e}, map diff shape: {self.map_diff[:, int(position[0]), int(position[1])].shape}, side: {player.side}, position: {player.position}, index: {[player.side,player.position[0],player.position[1]]}, map diff value {self.map_diff[:, int(position[0]), int(position[1])]}")
+
+				self.board_sight[k, 17] = player.alive
 	def return_alive(self, ids):
-		alive_index = 15
+		alive_index = 17
 		return self.board_sight[ids-1, alive_index]
 	def get_alive_mask(self):
 		all_ids = np.arange(self.player_num) + 1
@@ -626,6 +648,34 @@ class Game_Env_v0(Base_Env):
 			mag = np.linalg.norm(web, axis=1)
 			self.mags[player.id -1] = mag
 		return web, mag
+	def get_ks_ms(self, player):
+		web, mag = self.get_web_and_mag(player)
+		if web is None:
+			return None, None
+		player_velocity = self.board_sight[player.id-1, 2:4].copy()
+		player_k = self.k_ids[player.id-1].copy()
+		sub_k = self.k_ids[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+		superior_mass = self.masses[player.superior_id-1].copy() if player.superior_id != None else None
+		sub_masses = self.masses[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+		ks = None
+		ms = None
+		if player.superior_id == None:
+			ks = sub_k
+			ms = sub_masses
+			alive = self.return_alive(np.asarray(player.sub_ids))
+			ks = ks[alive==1]
+			ms = ms[alive==1]
+		elif player.sub_ids == None:
+			ks = np.array([player_k])
+			ms = np.array([superior_mass])
+		else:
+			ks = np.concatenate([np.asarray([player_k]), sub_k], axis=0)
+			ms = np.concatenate([np.asarray([superior_mass]), sub_masses], axis=0)
+			alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
+			ks = ks[alive==1]
+			ms = ms[alive==1]
+		return ks, ms
+
 	def get_spring(self, player, epsilon=10**-50):
 		web, mag = self.get_web_and_mag(player)
 		if web is None:
@@ -656,7 +706,7 @@ class Game_Env_v0(Base_Env):
 		player_mass = self.masses[player.id-1].copy()
 		mag[mag == 0] = 1
 		try:
-			radiis = np.diag(player.r_a/(mag*np.sqrt(2))) @ web
+			radiis = np.diag(player.r_a/(mag)) @ web
 		except Exception as e:
 			if self.log:
 				print(f"{e}, mag: {mag}, web: {web}")
@@ -667,32 +717,22 @@ class Game_Env_v0(Base_Env):
 		except Exception as e:
 			if self.log:
 				print(f"{e}, web: {web}, web shape: {web.shape}, radiis: {radiis}, radiis shape: {radiis.shape}, ms: {ms}, ms shape: {ms.shape}, ks: {ks}, ks shape: {ks.shape}")
-		# I know that deviding by the board size and all that is kind of cheating but I really didn't like the way the below things are going.
 		force = np.sum(force, axis=0)
-		"""test"""
-		#web_avg = np.reshape(web.mean(axis=0), [1, 2])
-		"""
-		mask = np.asarray([[-1,-1]])==np.sign(force)
-		test = np.ones([1,2])
-		test = test[mask]
-		if test.shape[0] == 2:
-			if self.log:
-				print(f"force: {force}. web {web}")"""
 		above_limit = np.abs(force[np.abs(force) > self.spring_force_prop*player.force_prop])
 		if above_limit.shape[0] is not 0:
 			force /= above_limit.max()
 			force *= self.spring_force_prop
 		return force
-	def get_drag(self, player):
+	
+	def get_drag(self, player, force):
 		if self.get_height(*player.position) != 0:
 			return np.asarray([0,0])
-		force = -player.speed*player.velocity
 		above_limit = np.abs(force[np.abs(force) > self.drag_force_prop])
 		if above_limit.shape[0] is not 0:
 			force /= above_limit.max()
 			force *= self.drag_force_prop
 		return force
-	def rotate_force(self, player, force):
+	def rotate_force(self, player, force, z):
 		"""
 		Goal of this function:
 		rotate the force and deduct/add force taken from gravity so that it makes it harder to climb up mountains and can speed up when going down mountains
@@ -721,10 +761,10 @@ class Game_Env_v0(Base_Env):
 		else:
 			force_angles = force/force_mag
 		try:
-			map_vector = self.map_diff[:, int(position[0]), int(position[1])]
+			
 			force_3d_unit = np.asarray([force_angles[0]*player.cos,\
 			 force_angles[1]*player.cos,\
-			 np.abs(player.sin)*np.sign(np.dot(force, map_vector))])
+			z])
 		except Exception as e:
 			if self.log:
 				print(f"{e}. force angles: {force_angles}, force: {force}")
@@ -773,30 +813,110 @@ class Game_Env_v0(Base_Env):
 		Call when clearing arrows. This occurs when space is pressed
 		"""
 		self.move_board[self.interact_side,...] = 0
+	def get_spring_matrix(self):
+		living = self.get_alive_mask() == 1
+		self.k_mat[:] = 0
+		self.m_mat[:] = 0
+		self.web_mat[:] = 0
+		self.mag_mat[:] = 0
+		k = -1
+		for i in range(self.sides):
+			for j in range(self.players_per_side[i]):
+				if not self.player_array[i][j].alive:
+					continue
+				k += 1
+				player = self.player_array[i][j]
+				id = player.id
+				ks, ms = self.get_ks_ms(player)
+				if ks is None or ms is None:	
+					continue
+				self.k_mat[k, :ks.shape[0]] = ks
+				self.m_mat[k, :ms.shape[0]] = ms
+				
+				if self.webs[id-1] is None or self.mags[id-1] is None:
+					continue
+				self.web_mat[k, :self.webs[id-1].shape[0]] = self.webs[id-1]
+				self.mag_mat[k, :self.mags[id-1].shape[0]] = self.mags[id-1]
+	def get_springs(self):
+		self.get_spring_matrix()
+		living = self.get_alive_mask() == 1
+		player_mass_mat = self.masses[living]
+		mag_mat = self.mag_mat[living].copy()
+		mag_mat[mag_mat == 0] = 1 
+		radii_denom = 1/mag_mat
+		radiis = np.einsum("i,i...->i...", self.r_as[living], radii_denom)#radiis has shape [num_living, num_subs+1]
+		radiis = 2*np.einsum("ij, ij...->ij...", radiis, self.web_mat[living])#web_mat has shape [num_living, num_subs+1, 2]
+		#k_mat has shape [num_living, num_subs+1] as well as m_mat
+
+		forces = np.einsum("ij,ij...->ij...", self.k_mat[living], self.web_mat[living]-radiis)
+		mass_denom = np.einsum("i...,i->i...", self.m_mat[living], self.masses[living])
+
+		#if mass denom evaluates to 0, as the mass of the superior/subordinates are set to be None, the k_mat which this is later
+		#multiplied by will evaluate to 0 too. Thus, set to 1 to avoid complications
+		mass_denom[mass_denom == 0] = 1
+		mass_denom = 1/mass_denom
+		mass_num = np.transpose(np.transpose(self.m_mat[living])+self.masses[living])
+		mass_factor = np.einsum("ij,ij->ij", mass_num, mass_denom)
+		damping = -2*np.sqrt(np.einsum("ij,ij->ij", self.k_mat[living], mass_factor))
+		damping = np.einsum("ij,ik->ijk", damping, self.board_sight[living, 2:4])
+		forces += damping
+		forces = np.sum(forces, axis=1)
+		k = 0
+		for i in range(self.sides):
+			for j in range(self.players_per_side[i]):
+				player = self.player_array[i][j]
+				if not player.alive:
+					continue
+				force = forces[k]
+				above_limit = np.abs(force[np.abs(force) > self.spring_force_prop*player.force_prop])
+				if above_limit.shape[0] is not 0:
+					force /= above_limit.max()
+					force *= self.spring_force_prop
+				forces[k] = force
+				k += 1
+		return forces
 	def move(self):
+		living = self.get_alive_mask() == 1
+		river = self.board_sight[:, 9] == 0
+		is_drag = living & river
+		forces = self.board_sight[living, 13:15].copy()
+		forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
+		drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
+		spring_force = self.get_springs()
+		forces += spring_force
 		k = 0
 		for i in range(self.sides):
 			for j in range(self.players_per_side[i]):
 				if not self.player_array[i][j].alive:
 					continue
 				player = self.player_array[i][j]
-				id = player.id
-				force = np.asarray(self.board_sight[id-1, 13:15])
-				force *= player.player_force
-				force += self.get_spring(player)
-				force += self.get_drag(player)
-				force = self.rotate_force(player, force)
-				#force += self.get_drag(player)
+				force = forces[k]
+				if is_drag[is_drag].shape[0] != 0:
+					force += self.get_drag(player, drag_forces[drag_k])
+				#force += self.get_spring(player)
+				forces[k] = force
+				if is_drag[living][k]:
+					drag_k+=1
+				k+=1
 
-				#orient so that topology of the map matters
-				#force = np.asarray([[player.cos[0], player.sin[0]*player.sin[1]], [0, player.cos[0]]]) @ force
+		z = np.abs(self.board_sight[living, 11].copy())#z index of rotated 3d array
+		sign = np.sign(np.einsum("...i, ...i->...", forces, self.board_sight[living, 15:17]))
+		z = np.einsum("i,i->i", z, sign)
+		k = 0
+		for i in range(self.sides):
+			for j in range(self.players_per_side[i]):
+				if not self.player_array[i][j].alive:
+					continue
+				player = self.player_array[i][j]
+				force = forces[k]
+				force = self.rotate_force(player, force, z[k])
 
 				try:
 					self.player_array[i][j].apply_force(force, self.current_balls[k])
 				except Exception as e:
 					if self.log:
 						print(f"Exception: {e}, i: {i}, j: {j}, k: {k}, id: {player.id}, current_balls length: {len(self.current_balls)}")
-				k+=1
+				k += 1
 		k = 0
 		for i in range(self.sides):
 			for j in range(self.players_per_side[i]):
@@ -884,14 +1004,7 @@ class Game_Env_v0(Base_Env):
 		self.space.step(self.game_timestep)
 		if self.show:
 			pygame.display.flip()
-	def attack(self, epsilon=0.0001):
-		"""
-		TODO:
-		Replace pygame screen with image and make a constant size enough to fill the screen
-		Steps:
-		1. Scale up images to 513 vs 513? But how do I fix it up for pymunk? Nah, do later
-		Now, make it a custom environment
-		"""
+	def attack(self, epsilon=1e-10):
 		rotation = True
 		prop_side = self.prop_side
 		positions = self.board_sight[:, :2].copy()
@@ -908,9 +1021,7 @@ class Game_Env_v0(Base_Env):
 		velocities = velocities[living]
 		num_players = np.sum(self.remaining_players)
 		attacked = np.zeros(num_players)
-		mags[mags == 0] = 1
-		#Here for debugging purposes
-		cos_sin = (velocities+epsilon) / (mags[:, None]+epsilon)
+		cos_sin = (velocities+np.array([epsilon, 0])) / (mags[:, None]+epsilon)
 		rot_matrix = np.concatenate([\
 							np.concatenate([cos_sin[:, 0, None, None],\
 											 cos_sin[:, 1, None, None]], axis = 2),\
