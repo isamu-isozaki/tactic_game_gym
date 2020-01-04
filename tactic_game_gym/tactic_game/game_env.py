@@ -102,7 +102,7 @@ class Game_Env_v0(Base_Env):
 			self.surf = pygame.surfarray.make_surface(self.beautiful_map)
 			if self.log:
 				print(f"Finished generating pygame surface: {time.time()-self.start}")
-		self.map_diff = [np.diff(self.map.copy(), axis=1, append=1.)[None],np.diff(self.map.copy(), axis=0, append=1.)[None]]
+		self.map_diff = [np.diff(self.map.copy(), axis=1, append=0.)[None],np.diff(self.map.copy(), axis=0, append=0.)[None]]
 		self.map_diff = np.concatenate(self.map_diff, axis=0)
 		self.angle_map = self.map_diff.copy()
 		self.angle_map *= np.tan(self.max_angle)/self.angle_map.max()
