@@ -131,7 +131,7 @@ class Game_Env_v0(Base_Env):
 
 
 		self.k = [np.random.normal(loc=0, scale=self.std_k, size = int(players_per_side[i])) for i in range(self.sides)]
-		self.k = [sigmoid(self.k[i]) for i in range(self.sides)]
+		self.k = [self.spring_force*sigmoid(self.k[i]) for i in range(self.sides)]
 		#for i in range(self.sides):
 		#      self.k[i][...] = 1.#set to 1 for now
 		#Denotes trust
@@ -992,9 +992,13 @@ class Game_Env_v0(Base_Env):
 						x, y = player.vel
 						x = self.switch_to_pymunk(x)
 						y = self.switch_to_pymunk(y)
+						hp = player.hp
+						opacity = hp/(self.hp*2)
+						opacity = 1 if opacity > 1 else opacity
+						color_player = color.tolist() + [int(255*opacity)]
 						#This is a problem. Pygame only supports integers. Thus, animations won't be fluid
-						pygame.draw.circle(self.screen, color,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
-						pygame.draw.line(self.screen, color, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
+						pygame.draw.circle(self.screen, color_player,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
+						pygame.draw.line(self.screen, color_player, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
 					except Exception as e:
 						if self.log:
 							print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
