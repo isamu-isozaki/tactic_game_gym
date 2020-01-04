@@ -39,7 +39,7 @@ def game_args_parser():
 	parser.add_argument('--losing_penalty', type=float, default=-0.25, help="""The penalty for losing/surrendering.
 	The players will subsequently erased from the board.""")
 	parser.add_argument('--defecting_penalty', type=float, default=-0.25, help='The penalty for switching sides')
-	parser.add_argument('--continue_penalty', type=float, default=-0.003, help='The penalty for prolonging the game this is deducted from energy bar')
+	parser.add_argument('--continue_penalty', type=float, default=-0.005, help='The penalty for prolonging the game this is deducted from energy bar')
 	parser.add_argument('--kill_reward', type=float, default=0.5, help='The reward for killing a rank 1 player. This will increase per rank')
 	parser.add_argument('--num_types', type=int, default=3, help='The number of player types')
 	parser.add_argument('--rand_troop_prop', type=float, default=0.1, help='The std of normal distribution of 1 by which to multiply the troop props')
@@ -59,11 +59,9 @@ def game_args_parser():
 
 	parser.add_argument('--player_force_prop', type=float, default=3.5, help='The coefficient of the player force')
 	parser.add_argument('--drag_force_prop', type=float, default=4.5, help='The coefficient of the drag force')
-
 	parser.add_argument('--spring_force', type=float, default=2, help='The coefficient of the spring force')
-	parser.add_argument('--spring_force_prop', type=float, default=0.725, help='The max force of the spring force')
-	parser.add_argument('--g', type=float, default=0.1, help='The gravitational constant')
-
+	parser.add_argument('--spring_force_prop', type=float, default=0.725, help='The coefficient of the spring force')
+	parser.add_argument('--g', type=float, default=1.0, help='The gravitational constant')
 	parser.add_argument('--max_angle', type=float, default=np.pi/3, help='The maximum angle possible for the terrain to have')
 
 
