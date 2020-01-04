@@ -13,7 +13,7 @@ def game_args_parser():
 	parser = arg_parser()
 	parser.add_argument('--save_dir', type=str, default="model", help='The save directory where the checkpoint is')
 	parser.add_argument('--use_base_dir',default=True, action='store_false', help='Use the current base directory')
-	parser.add_argument('--strength', type=float, default=0.01, help='Mean strength of player')
+	parser.add_argument('--strength', type=float, default=0.015, help='Mean strength of player')
 	parser.add_argument('--hp', type=float, default=10, help='The mean HP of player')
 	parser.add_argument('--std_k', type=float, default=2.0, help='Std of spring constant. Calculated by a normal distribution in sigmoid. Mean of normal is 0')
 	parser.add_argument('--rand_params', default=True, action='store_false', help='Whether to randomize parameters or not')
@@ -34,12 +34,12 @@ def game_args_parser():
 	parser.add_argument('--order_constant', type=float, default=1.0, help='The max magnitude of order force')
 	parser.add_argument('--player_force', type=float, default=1.0, help='The max magnitude of player force')
 	parser.add_argument('--max_speed', type=float, default=6.0, help='The max speed')
-	parser.add_argument('--range_factor', type=float, default=1.2, help='The factor by which to multiply the range by')
+	parser.add_argument('--range_factor', type=float, default=1, help='The factor by which to multiply the range by')
 	parser.add_argument('--death_penalty', type=float, default=-0.5, help='The penalty for death per player')
 	parser.add_argument('--losing_penalty', type=float, default=-0.25, help="""The penalty for losing/surrendering.
 	The players will subsequently erased from the board.""")
 	parser.add_argument('--defecting_penalty', type=float, default=-0.25, help='The penalty for switching sides')
-	parser.add_argument('--continue_penalty', type=float, default=-0.001, help='The penalty for prolonging the game this is deducted from energy bar')
+	parser.add_argument('--continue_penalty', type=float, default=-0.003, help='The penalty for prolonging the game this is deducted from energy bar')
 	parser.add_argument('--kill_reward', type=float, default=0.5, help='The reward for killing a rank 1 player. This will increase per rank')
 	parser.add_argument('--num_types', type=int, default=3, help='The number of player types')
 	parser.add_argument('--rand_troop_prop', type=float, default=0.1, help='The std of normal distribution of 1 by which to multiply the troop props')
@@ -60,7 +60,7 @@ def game_args_parser():
 	parser.add_argument('--player_force_prop', type=float, default=3.5, help='The coefficient of the player force')
 	parser.add_argument('--drag_force_prop', type=float, default=4.5, help='The coefficient of the drag force')
 	parser.add_argument('--spring_force_prop', type=float, default=0.725, help='The coefficient of the spring force')
-	parser.add_argument('--g', type=float, default=1.0, help='The gravitational constant')
+	parser.add_argument('--g', type=float, default=0.1, help='The gravitational constant')
 	parser.add_argument('--max_angle', type=float, default=np.pi/3, help='The maximum angle possible for the terrain to have')
 
 
