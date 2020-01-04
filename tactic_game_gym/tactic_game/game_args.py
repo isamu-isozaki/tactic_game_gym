@@ -24,7 +24,7 @@ def game_args_parser():
 	parser.add_argument('--board_size', type=int, default=257, help='The number of sides in the war. Due to diamond square algorithm, must be in the form of 2^n+1')
 	parser.add_argument('--scale_fac', type=int, default=8, help='Scale down ratio for the board size')
 	parser.add_argument('--moves_without_attack', type=int, default=3, help='The number of moves without needing to attack')
-	parser.add_argument('--num_subs', type=int, default=2, help='The maximum amount of subordinates per superior')
+	parser.add_argument('--num_subs', type=int, default=3, help='The maximum amount of subordinates per superior')
 	parser.add_argument('--base_vision', type=float, default=10, help='Mean of base vision.')#This is the same as attack range
 	parser.add_argument('--archer_constant', type=float, default=2.0, help='The archer constant. The attack range is n times larger but the HP is n**2 times less')
 	parser.add_argument('--archer_freq', type=int, default=2, help='The frequency at which archers attack')
@@ -34,7 +34,7 @@ def game_args_parser():
 	parser.add_argument('--order_constant', type=float, default=1.0, help='The max magnitude of order force')
 	parser.add_argument('--player_force', type=float, default=1.0, help='The max magnitude of player force')
 	parser.add_argument('--max_speed', type=float, default=6.0, help='The max speed')
-	parser.add_argument('--range_factor', type=float, default=1, help='The factor by which to multiply the range by')
+	parser.add_argument('--range_factor', type=float, default=1.2, help='The factor by which to multiply the range by')
 	parser.add_argument('--death_penalty', type=float, default=-0.5, help='The penalty for death per player')
 	parser.add_argument('--losing_penalty', type=float, default=-0.25, help="""The penalty for losing/surrendering.
 	The players will subsequently erased from the board.""")
@@ -60,7 +60,7 @@ def game_args_parser():
 	parser.add_argument('--player_force_prop', type=float, default=3.5, help='The coefficient of the player force')
 	parser.add_argument('--drag_force_prop', type=float, default=4.5, help='The coefficient of the drag force')
 	parser.add_argument('--spring_force_prop', type=float, default=0.725, help='The coefficient of the spring force')
-	parser.add_argument('--g', type=float, default=10.0, help='The gravitational constant')
+	parser.add_argument('--g', type=float, default=1.0, help='The gravitational constant')
 	parser.add_argument('--max_angle', type=float, default=np.pi/3, help='The maximum angle possible for the terrain to have')
 
 

@@ -1003,7 +1003,7 @@ class Game_Env_v0(Base_Env):
 		self.space.step(self.game_timestep)
 		if self.show:
 			pygame.display.flip()
-	def attack(self, epsilon=1e-10):
+	def attack(self, epsilon=1e-5):
 		rotation = True
 		prop_side = self.prop_side
 		positions = self.board_sight[:, :2].copy()
@@ -1020,7 +1020,7 @@ class Game_Env_v0(Base_Env):
 		velocities = velocities[living]
 		num_players = np.sum(self.remaining_players)
 		attacked = np.zeros(num_players)
-		cos_sin = (velocities+np.array([epsilon, 0])) / (mags[:, None]+epsilon)
+		cos_sin = (velocities+np.array([epsilon, epsilon])) / (mags[:, None]+epsilon*np.sqrt(2))
 		rot_matrix = np.concatenate([\
 							np.concatenate([cos_sin[:, 0, None, None],\
 											 cos_sin[:, 1, None, None]], axis = 2),\
