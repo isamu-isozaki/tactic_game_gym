@@ -880,9 +880,9 @@ class Game_Env_v0(Base_Env):
 		is_drag = living & river
 		forces = self.board_sight[living, 13:15].copy()
 		forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
-		drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
-		spring_force = self.get_springs()
-		forces += spring_force
+		#drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
+		#spring_force = self.get_springs()
+		#forces += spring_force
 		k = 0
 		for i in range(self.sides):
 			for j in range(self.players_per_side[i]):
@@ -892,7 +892,7 @@ class Game_Env_v0(Base_Env):
 				force = forces[k]
 				if is_drag[is_drag].shape[0] != 0:
 					force += self.get_drag(player, drag_forces[drag_k])
-				#force += self.get_spring(player)
+				force += self.get_spring(player)
 				forces[k] = force
 				if is_drag[living][k]:
 					drag_k+=1
