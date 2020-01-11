@@ -646,83 +646,7 @@ class Game_Env_v0(Base_Env):
 		else:
 			mag = np.linalg.norm(web, axis=1)
 			self.mags[player.id -1] = mag
-		return web, mag
-	def get_ks_ms(self, player):
-		web, mag = self.get_web_and_mag(player)
-		if web is None:
-			return None, None
-		player_velocity = self.board_sight[player.id-1, 2:4].copy()
-		player_k = self.k_ids[player.id-1].copy()
-		sub_k = self.k_ids[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
-		superior_mass = self.masses[player.superior_id-1].copy() if player.superior_id != None else None
-		sub_masses = self.masses[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
-		ks = None
-		ms = None
-		if player.superior_id == None:
-			ks = sub_k
-			ms = sub_masses
-			alive = self.return_alive(np.asarray(player.sub_ids))
-			ks = ks[alive==1]
-			ms = ms[alive==1]
-		elif player.sub_ids == None:
-			ks = np.array([player_k])
-			ms = np.array([superior_mass])
-		else:
-			ks = np.concatenate([np.asarray([player_k]), sub_k], axis=0)
-			ms = np.concatenate([np.asarray([superior_mass]), sub_masses], axis=0)
-			alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
-			ks = ks[alive==1]
-			ms = ms[alive==1]
-		return ks, ms
-
-	def get_spring(self, player, epsilon=10**-50):
-		web, mag = self.get_web_and_mag(player)
-		if web is None:
-			return np.asarray([0,0])
-		player_velocity = self.board_sight[player.id-1, 2:4].copy()
-		player_k = self.k_ids[player.id-1].copy()
-		sub_k = self.k_ids[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
-		superior_mass = self.masses[player.superior_id-1].copy() if player.superior_id != None else None
-		sub_masses = self.masses[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
-		ks = None
-		ms = None
-		if player.superior_id == None:
-			ks = sub_k
-			ms = sub_masses
-			alive = self.return_alive(np.asarray(player.sub_ids))
-			ks = ks[alive==1]
-			ms = ms[alive==1]
-		elif player.sub_ids == None:
-			ks = player_k
-			ms = superior_mass
-		else:
-			ks = np.concatenate([np.asarray([player_k]), sub_k], axis=0)
-			ms = np.concatenate([np.asarray([superior_mass]), sub_masses], axis=0)
-			alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
-			ks = ks[alive==1]
-			ms = ms[alive==1]
-
-		player_mass = self.masses[player.id-1].copy()
-		mag[mag == 0] = 1
-		try:
-			radiis = np.diag(player.r_a/(mag)) @ web
-		except Exception as e:
-			if self.log:
-				print(f"{e}, mag: {mag}, web: {web}")
-		ks = np.reshape(ks, [-1])
-		ms = np.reshape(ms, [-1])
-		try:
-			force = np.diag(ks) @(web-radiis*2)- 2*np.reshape(np.sqrt(ks*(ms+player_mass)/(ms*player_mass)), (-1, 1))@np.reshape(player_velocity, (1,2))
-		except Exception as e:
-			if self.log:
-				print(f"{e}, web: {web}, web shape: {web.shape}, radiis: {radiis}, radiis shape: {radiis.shape}, ms: {ms}, ms shape: {ms.shape}, ks: {ks}, ks shape: {ks.shape}")
-		force = np.sum(force, axis=0)
-		above_limit = np.abs(force[np.abs(force) > self.spring_force_prop*player.force_prop])
-		if above_limit.shape[0] is not 0:
-			force /= above_limit.max()
-			force *= self.spring_force_prop
-		return force
-	
+		return web, mag	
 	def get_drag(self, player, force):
 		if self.get_height(*player.position) != 0:
 			return np.asarray([0,0])
@@ -812,6 +736,33 @@ class Game_Env_v0(Base_Env):
 		Call when clearing arrows. This occurs when space is pressed
 		"""
 		self.move_board[self.interact_side,...] = 0
+	def get_ks_ms(self, player):
+		web, mag = self.get_web_and_mag(player)
+		if web is None:
+			return None, None
+		player_velocity = self.board_sight[player.id-1, 2:4].copy()
+		player_k = self.k_ids[player.id-1].copy()
+		sub_k = self.k_ids[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+		superior_mass = self.masses[player.superior_id-1].copy() if player.superior_id != None else None
+		sub_masses = self.masses[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+		ks = None
+		ms = None
+		if player.superior_id == None:
+			ks = sub_k
+			ms = sub_masses
+			alive = self.return_alive(np.asarray(player.sub_ids))
+			ks = ks[alive==1]
+			ms = ms[alive==1]
+		elif player.sub_ids == None:
+			ks = np.array([player_k])
+			ms = np.array([superior_mass])
+		else:
+			ks = np.concatenate([np.asarray([player_k]), sub_k], axis=0)
+			ms = np.concatenate([np.asarray([superior_mass]), sub_masses], axis=0)
+			alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
+			ks = ks[alive==1]
+			ms = ms[alive==1]
+		return ks, ms
 	def get_spring_matrix(self):
 		living = self.get_alive_mask() == 1
 		self.k_mat[:] = 0
@@ -841,9 +792,11 @@ class Game_Env_v0(Base_Env):
 		living = self.get_alive_mask() == 1
 		player_mass_mat = self.masses[living]
 		mag_mat = self.mag_mat[living].copy()
+		radiis = self.r_as[living].copy()
+		radiis[mag_mat == 0] = 0
 		mag_mat[mag_mat == 0] = 1 
 		radii_denom = 1/mag_mat
-		radiis = np.einsum("i,i...->i...", self.r_as[living], radii_denom)#radiis has shape [num_living, 2*num_subs-1]
+		radiis = np.einsum("i,i...->i...", radiis, radii_denom)#radiis has shape [num_living, 2*num_subs-1]
 		radiis = 2*np.einsum("ij, ij...->ij...", radiis, self.web_mat[living])#web_mat has shape [num_living, 2*num_subs-1, 2]
 		#k_mat has shape [num_living, 2*num_subs-1] as well as m_mat
 
@@ -875,6 +828,53 @@ class Game_Env_v0(Base_Env):
 				forces[k] = force
 				k += 1
 		return forces
+	def get_spring(self, player, epsilon=10**-50):
+		web, mag = self.get_web_and_mag(player)
+		if web is None:
+			return np.asarray([0,0])
+		player_velocity = self.board_sight[player.id-1, 2:4].copy()
+		player_k = self.k_ids[player.id-1].copy()
+		sub_k = self.k_ids[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+		superior_mass = self.masses[player.superior_id-1].copy() if player.superior_id != None else None
+		sub_masses = self.masses[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+		ks = None
+		ms = None
+		if player.superior_id == None:
+			ks = sub_k
+			ms = sub_masses
+			alive = self.return_alive(np.asarray(player.sub_ids))
+			ks = ks[alive==1]
+			ms = ms[alive==1]
+		elif player.sub_ids == None:
+			ks = player_k
+			ms = superior_mass
+		else:
+			ks = np.concatenate([np.asarray([player_k]), sub_k], axis=0)
+			ms = np.concatenate([np.asarray([superior_mass]), sub_masses], axis=0)
+			alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
+			ks = ks[alive==1]
+			ms = ms[alive==1]
+
+		player_mass = self.masses[player.id-1].copy()
+		mag[mag == 0] = 1
+		try:
+			radiis = np.diag(player.r_a/(mag)) @ web
+		except Exception as e:
+			if self.log:
+				print(f"{e}, mag: {mag}, web: {web}")
+		ks = np.reshape(ks, [-1])
+		ms = np.reshape(ms, [-1])
+		try:
+			force = np.diag(ks) @(web-radiis*2)- 2*np.reshape(np.sqrt(ks*(ms+player_mass)/(ms*player_mass)), (-1, 1))@np.reshape(player_velocity, (1,2))
+		except Exception as e:
+			if self.log:
+				print(f"{e}, web: {web}, web shape: {web.shape}, radiis: {radiis}, radiis shape: {radiis.shape}, ms: {ms}, ms shape: {ms.shape}, ks: {ks}, ks shape: {ks.shape}")
+		force = np.sum(force, axis=0)
+		above_limit = np.abs(force[np.abs(force) > self.spring_force_prop*player.force_prop])
+		if above_limit.shape[0] is not 0:
+			force /= above_limit.max()
+			force *= self.spring_force_prop
+		return force
 	def move(self):
 		living = self.get_alive_mask() == 1
 		river = self.board_sight[:, 9] == 0
