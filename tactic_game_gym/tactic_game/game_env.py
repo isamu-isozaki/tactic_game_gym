@@ -843,18 +843,19 @@ class Game_Env_v0(Base_Env):
 		mag_mat = self.mag_mat[living].copy()
 		mag_mat[mag_mat == 0] = 1 
 		radii_denom = 1/mag_mat
-		radiis = np.einsum("i,i...->i...", self.r_as[living], radii_denom)#radiis has shape [num_living, num_subs+1]
-		radiis = 2*np.einsum("ij, ij...->ij...", radiis, self.web_mat[living])#web_mat has shape [num_living, num_subs+1, 2]
-		#k_mat has shape [num_living, num_subs+1] as well as m_mat
+		radiis = np.einsum("i,i...->i...", self.r_as[living], radii_denom)#radiis has shape [num_living, 2*num_subs-1]
+		radiis = 2*np.einsum("ij, ij...->ij...", radiis, self.web_mat[living])#web_mat has shape [num_living, 2*num_subs-1, 2]
+		#k_mat has shape [num_living, 2*num_subs-1] as well as m_mat
 
 		forces = np.einsum("ij,ij...->ij...", self.k_mat[living], self.web_mat[living]-radiis)
 		mass_denom = np.einsum("i...,i->i...", self.m_mat[living], self.masses[living])
 
 		#if mass denom evaluates to 0, as the mass of the superior/subordinates are set to be None, the k_mat which this is later
 		#multiplied by will evaluate to 0 too. Thus, set to 1 to avoid complications
+		mass_num = np.transpose(np.transpose(self.m_mat[living])+self.masses[living])
+		mass_num[mass_denom == 0] = 0
 		mass_denom[mass_denom == 0] = 1
 		mass_denom = 1/mass_denom
-		mass_num = np.transpose(np.transpose(self.m_mat[living])+self.masses[living])
 		mass_factor = np.einsum("ij,ij->ij", mass_num, mass_denom)
 		damping = -2*np.sqrt(np.einsum("ij,ij->ij", self.k_mat[living], mass_factor))
 		damping = np.einsum("ij,ik->ijk", damping, self.board_sight[living, 2:4])
@@ -881,8 +882,8 @@ class Game_Env_v0(Base_Env):
 		forces = self.board_sight[living, 13:15].copy()
 		forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
 		drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
-		spring_force = self.get_springs()
-		forces += spring_force
+		#spring_force = self.get_springs()
+		#forces += spring_force
 		k = 0
 		for i in range(self.sides):
 			for j in range(self.players_per_side[i]):
@@ -892,7 +893,7 @@ class Game_Env_v0(Base_Env):
 				force = forces[k]
 				if is_drag[is_drag].shape[0] != 0:
 					force += self.get_drag(player, drag_forces[drag_k])
-				#force += self.get_spring(player)
+				force += self.get_spring(player)
 				forces[k] = force
 				if is_drag[living][k]:
 					drag_k+=1
