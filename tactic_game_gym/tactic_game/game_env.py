@@ -36,8 +36,8 @@ class Game_Env_v0(Base_Env):
 		if self.is_train:
 			import math
 			if not hasattr(self, "total_moves"):
-				self.total_moves = 0
-				self.stage = self.init_stage
+				self.total_moves = self.ended_moves
+				self.stage = int(self.init_stage+self.ended_moves//self.stage_update_num)
 				self.num_stages = int(math.log(self.act_board_size, 2) - math.log(self.stage, 2))
 
 		self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3])
@@ -1250,14 +1250,16 @@ class Game_Env_v0(Base_Env):
 					if not player.alive or not (self.full_view or self.can_see[i, player.id-1]):
 						continue
 					try:
-						x, y = player.vel
+						xys = self.board_sight[player.id-1, :4].copy()
+						x = xys[:2]
+						y = xys[2:]
+						y += x
 						x = self.switch_to_pymunk(x)
 						y = self.switch_to_pymunk(y)
-						#This is a problem. Pygame only supports integers. Thus, animations won't be fluid
 						cv2.circle(self.render_output[i], tuple(self.switch_to_pymunk([int(player.position[0]), int(player.position[1])])), int(player.radius) if int(player.radius) > 0 else 1, tuple([int(m) for m in colors[i2]]))
 						cv2.line(self.render_output[i], tuple([int(x[0]), int(x[1])]), tuple([int(y[0]), int(y[1])]), tuple([int(m) for m in colors[i2]]))
 					except Exception as e:
-						print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+						print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}, alive: {player.alive}")
 						import traceback
 
 						print(traceback.format_exc())
@@ -1287,15 +1289,16 @@ class Game_Env_v0(Base_Env):
 			for i2 in range(self.sides):
 				for j in range(self.players_per_side[i2]):
 					player = self.player_array[i2][j]
-					if self.can_see[i, player.id-1]:
-						position = player.position
-						position = np.asarray(position)
-						position[position > self.board_size[0]-1] =  self.board_size[0]-1
-						self.obs_full[i, int(position[0]), int(position[1]), 1] = player.hp if i == i2 else 0
-						self.obs_full[i, int(position[0]), int(position[1]), 2] = player.hp if i != i2 else 0
-						self.obs_full[i, int(position[0]), int(position[1]), 3:5] = player.velocity.copy() if i == i2 else [0,0]
-						self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i != i2 else [0,0]
-						self.obs_full[i, int(position[0]), int(position[1]), 7] = self.attacked_dist[i, player.id-1]
+					if not player.alive or not (self.full_view or self.can_see[i, player.id-1]):
+						continue
+					position = player.position
+					position = np.asarray(position)
+					position[position > self.board_size[0]-1] =  self.board_size[0]-1
+					self.obs_full[i, int(position[0]), int(position[1]), 1] = player.hp if i == i2 else 0
+					self.obs_full[i, int(position[0]), int(position[1]), 2] = player.hp if i != i2 else 0
+					self.obs_full[i, int(position[0]), int(position[1]), 3:5] = player.velocity.copy() if i == i2 else [0,0]
+					self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i != i2 else [0,0]
+					self.obs_full[i, int(position[0]), int(position[1]), 7] = self.attacked_dist[i, player.id-1]
 			#normalize
 			self.obs_full[i, np.abs(self.obs_full[i]) < epsilon] = 0
 			self.obs_full[i, ..., 1:3] /= self.hp*(1+self.rand_prop)
