@@ -115,4 +115,5 @@ def game_args_parser():
 	parser.add_argument('--init_stage', default=1, type=int, help='The initial stage of action stage')
 
 	parser.add_argument('--stage_update_num', default=3e5, type=float, help='The number of moves until getting the next the step from model')
+	parser.add_argument('--ended_moves', default=0, type=int, help='The number of moves where training ended')
 	return parser
