@@ -39,10 +39,10 @@ class Map_Env(Args_Env):
 
     def get_map(self):
         coordinates = diamond_square.DiamondSquare(self.map_board_size)
-        coordinates = np.asarray(coordinates)
+        coordinates = np.asarray(coordinates, dtype=np.float16)
         coordinates = np.reshape(coordinates, [self.map_board_size, self.map_board_size]+ [3])
         coordinates = coordinates[:,:,-1]/256.0
-        coordinates = cv2.resize(coordinates, tuple(self.board_size), interpolation=cv2.INTER_CUBIC)
+        coordinates = cv2.resize(coordinates.astype(np.float32), tuple(self.board_size), interpolation=cv2.INTER_CUBIC).astype(np.float16)
         return coordinates
     def get_height(self, x, y):
         x1 = int(x)

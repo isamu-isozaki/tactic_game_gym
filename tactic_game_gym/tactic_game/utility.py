@@ -16,5 +16,5 @@ def get_n_colors(self, n=2):
 			rgb_color.append(color_comp)
 			color -= color_comp*bases[j]
 		output.append(rgb_color)
-	output = np.asarray(output)
+	output = np.asarray(output, dtype=np.float16)
 	return output

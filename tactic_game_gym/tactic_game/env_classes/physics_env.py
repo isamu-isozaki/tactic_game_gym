@@ -19,14 +19,14 @@ class Setup_Web(Get_Sight):
         else:
             player_pos = self.board_sight[player.id-1, :2].copy()
             superior_pos = np.reshape(self.board_sight[player.superior_id-1, :2].copy(), (-1, 2)) if player.superior_id != None else None
-            sub_pos = np.reshape(self.board_sight[np.asarray(player.sub_ids)-1, :2].copy(), (-1, 2)) if player.sub_ids != None else None
+            sub_pos = np.reshape(self.board_sight[np.asarray(player.sub_ids, dtype=np.uint8)-1, :2].copy(), (-1, 2)) if player.sub_ids != None else None
 
             if player.superior_id == None and player.sub_ids == None:
                 return None, None
 
             if player.superior_id == None:
                 web = sub_pos
-                alive = self.return_alive(np.asarray(player.sub_ids))
+                alive = self.return_alive(np.asarray(player.sub_ids, dtype=np.uint8))
                 web = web[alive==1]
             elif player.sub_ids == None:
                 web = superior_pos
@@ -36,11 +36,11 @@ class Setup_Web(Get_Sight):
             else:
                 try:
                     web = np.concatenate([superior_pos, sub_pos], axis=0)
-                    alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
+                    alive = np.concatenate([[self.return_alive(player.superior_id)], self.return_alive(player.sub_ids)], axis=0)
                     web = web[alive==1]
                 except Exception as e:
                     if self.log:
-                        print(f"{e}, superior shape: {superior_pos.shape}, sub_pos shape: {sub_pos.shape}, superior id alive: {self.return_alive(player.superior_id)}, sub id alive: {self.return_alive(np.asarray(player.sub_ids))}")
+                        print(f"{e}, superior shape: {superior_pos.shape}, sub_pos shape: {sub_pos.shape}, superior id alive: {self.return_alive(player.superior_id)}, sub id alive: {self.return_alive(np.asarray(player.sub_ids, dtype=np.uint8))}")
 
             if web is None or web.shape[0] == 0:
                 web = None
@@ -63,54 +63,55 @@ class Setup_Web(Get_Sight):
             return None, None
         player_velocity = self.board_sight[player.id-1, 2:4].copy()
         player_k = self.k_ids[player.id-1].copy()
-        sub_k = self.k_ids[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+        sub_k = self.k_ids[np.asarray(player.sub_ids, dtype=np.uint8)-1].copy() if player.sub_ids != None else None
         superior_mass = self.masses[player.superior_id-1].copy() if player.superior_id != None else None
-        sub_masses = self.masses[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+        sub_masses = self.masses[np.asarray(player.sub_ids, dtype=np.uint8)-1].copy() if player.sub_ids != None else None
         ks = None
         ms = None
         if player.superior_id == None:
             ks = sub_k
             ms = sub_masses
-            alive = self.return_alive(np.asarray(player.sub_ids))
+            alive = self.return_alive(np.asarray(player.sub_ids, dtype=np.uint8))
             ks = ks[alive==1]
             ms = ms[alive==1]
         elif player.sub_ids == None:
-            ks = np.array([player_k])
-            ms = np.array([superior_mass])
+            ks = np.array([player_k], dtype=np.float16)
+            ms = np.array([superior_mass], dtype=np.float16)
         else:
-            ks = np.concatenate([np.asarray([player_k]), sub_k], axis=0)
-            ms = np.concatenate([np.asarray([superior_mass]), sub_masses], axis=0)
-            alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
+            ks = np.concatenate([np.asarray([player_k], dtype=np.float16), sub_k], axis=0)
+            ms = np.concatenate([np.asarray([superior_mass], dtype=np.float16), sub_masses], axis=0)
+            alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)], dtype=np.float16), self.return_alive(np.asarray(player.sub_ids, dtype=np.float16))], axis=0)
             ks = ks[alive==1]
             ms = ms[alive==1]
         return ks, ms
-class Setup_Springs(Setup_Web):
+class Setup_Swarm_Intelligence(Setup_Web):
     def __init__(self, **kwargs):
         Setup_Web.__init__(self, **kwargs)
     def get_spring(self, player, epsilon=10**-50):
         web, mag = self.get_web_and_mag(player)
         if web is None:
-            return np.asarray([0,0])
+            return np.asarray([0,0], dtype=np.float16)
         player_velocity = self.board_sight[player.id-1, 2:4].copy()
         player_k = self.k_ids[player.id-1].copy()
-        sub_k = self.k_ids[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+        sub_ids = np.array(player.sub_ids, dtype=np.uint8)  if player.sub_ids != None else None
+        sub_k = self.k_ids[sub_ids-1].copy() if player.sub_ids != None else None
         superior_mass = self.masses[player.superior_id-1].copy() if player.superior_id != None else None
-        sub_masses = self.masses[np.asarray(player.sub_ids)-1].copy() if player.sub_ids != None else None
+        sub_masses = self.masses[sub_ids-1].copy() if player.sub_ids != None else None
         ks = None
         ms = None
         if player.superior_id == None:
             ks = sub_k
             ms = sub_masses
-            alive = self.return_alive(np.asarray(player.sub_ids))
+            alive = self.return_alive(sub_ids)
             ks = ks[alive==1]
             ms = ms[alive==1]
         elif player.sub_ids == None:
             ks = player_k
             ms = superior_mass
         else:
-            ks = np.concatenate([np.asarray([player_k]), sub_k], axis=0)
-            ms = np.concatenate([np.asarray([superior_mass]), sub_masses], axis=0)
-            alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)]), self.return_alive(np.asarray(player.sub_ids))], axis=0)
+            ks = np.concatenate([np.asarray([player_k], dtype=np.float16), sub_k], axis=0)
+            ms = np.concatenate([np.asarray([superior_mass], dtype=np.float16), sub_masses], axis=0)
+            alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)], dtype=np.uint8), self.return_alive(player.sub_ids)], axis=0)
             ks = ks[alive==1]
             ms = ms[alive==1]
 
@@ -203,12 +204,12 @@ class Setup_Springs(Setup_Web):
                 forces[k] = force
                 k += 1
         return forces
-class Setup_Drag_Force(Setup_Springs):
+class Setup_Drag_Force(Setup_Swarm_Intelligence):
     def __init__(self, **kwargs):
         Setup_Springs.__init__(self, **kwargs)
     def get_drag(self, player, force):
         if self.get_height(*player.position) != 0:
-            return np.asarray([0,0])
+            return np.asarray([0,0], dtype=np.float16)
         above_limit = np.abs(force[np.abs(force) > self.drag_force_prop])
         if above_limit.shape[0] is not 0:
             force /= above_limit.max()
@@ -237,7 +238,6 @@ class Setup_Rotate_Force(Setup_Drag_Force):
         multiply cos alpha by the mg scalar and multiply by the unit vector
         """
         position = player.position
-        position = np.asarray(position)
         position[position > self.board_size[0]-1] =  self.board_size[0]-1
         position = position.tolist()
         force_mag = np.linalg.norm(force)
@@ -250,7 +250,7 @@ class Setup_Rotate_Force(Setup_Drag_Force):
             
             force_3d_unit = np.asarray([force_angles[0]*player.cos,\
              force_angles[1]*player.cos,\
-            z])
+            z], dtype=np.float16)
         except Exception as e:
             if self.log:
                 print(f"{e}. force angles: {force_angles}, force: {force}")

@@ -15,8 +15,14 @@ def main(args):
 	env = Game_Env(**args)
 	print("Finished initialization")
 	if args["test_env"]:
-		env.run_env()
+		if args['profile']:
+			cProfile.runctx('env.run_env()', None, locals())
+		else:
+			env.run_env()
 	elif args["test_mobilize"]:
-		env.mobilize()
+		if args['profile']:
+			cProfile.runctx('env.mobilize()', None, locals())
+		else:
+			env.mobilize()
 if __name__ == "__main__":
 	main(sys.argv)

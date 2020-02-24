@@ -13,7 +13,7 @@ class Player:
 		self.side = side
 		self.type=-1
 		self.mass = 1
-		self.position = np.zeros(2)
+		self.position = np.zeros(2, dtype=np.float16)
 		self.alive = True
 		self.force = None
 		self.r_a = None

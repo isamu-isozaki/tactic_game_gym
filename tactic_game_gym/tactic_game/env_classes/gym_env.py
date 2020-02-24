@@ -41,7 +41,7 @@ class Gym_Env(Playable_Game):
                         action_std = action_segment.std()
                         action[size*i:size*(i+1), size*j:size*(j+1), k] = np.random.normal(action_mean, action_std)
         self.action[self.side] = action.copy()
-        self.move_board[side] = cv2.resize(action, (self.board_size[0], self.board_size[1]))
+        self.move_board[side] = cv2.resize(action.astype(np.float32), (self.board_size[0], self.board_size[1])).astype(np.float16)
         # if self.save_imgs:
         # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
         # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
@@ -54,13 +54,13 @@ class Gym_Env(Playable_Game):
     def reset(self):
         self.__init__(**self.kwargs)
         self.start_game()
-        self.vel_mags = np.zeros(self.player_num)
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
         self.t = 0
         self.get_sight()
         return [self.obs]
     def render(self, mode='human', close=False):
         self.render_output = self.beautiful_output.copy()
-        self.arrow_output = np.zeros_like(self.render_output)
+        self.arrow_output = np.zeros_like(self.render_output, dtype=np.float16)
         #self.screen.blit(self.surf, (0,0))
         #draw_width = self.draw_width
         colors = get_n_colors(self.sides)

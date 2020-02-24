@@ -45,22 +45,22 @@ class Setup_Var_Init(Map_Env):
             print(f"You are side {self.interact_side}")
 
         #numpy arrays below
-        self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3])
-        self.finished_sides = np.zeros(self.sides)
-        self.move_board = np.zeros([self.sides] + self.board_size+[2])
+        self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3], dtype=np.float16)
+        self.finished_sides = np.zeros(self.sides, dtype=np.float16)
+        self.move_board = np.zeros([self.sides] + self.board_size+[2], dtype=np.float16)
         obs_shape = (self.obs_board_size, self.obs_board_size, 1+2+2*2+1)
         obs_full_shape  = (*self.board_size, 1+2+2*2+1)
-        self.obs = np.zeros([self.sides] + list(obs_shape))
-        self.obs_full = np.zeros([self.sides] + list(obs_full_shape))
+        self.obs = np.zeros([self.sides] + list(obs_shape), dtype=np.float16)
+        self.obs_full = np.zeros([self.sides] + list(obs_full_shape), dtype=np.float16)
         for i in range(self.sides):
             self.obs_full[i, ...,  0] = self.map.copy()* 255
-            self.obs[i, ...,  0] = cv2.resize(self.map.copy(), (self.obs_board_size, self.obs_board_size))* 255
-        self.dead = np.zeros(self.sides)#the amount that died during the current time step for all sides
-        self.rewards = np.zeros(self.sides)#the amount that died for other sides
+            self.obs[i, ...,  0] = cv2.resize(self.map.copy().astype(np.float32), (self.obs_board_size, self.obs_board_size)).astype(np.float16)* 255
+        self.dead = np.zeros(self.sides, dtype=np.float16)#the amount that died during the current time step for all sides
+        self.rewards = np.zeros(self.sides, dtype=np.float16)#the amount that died for other sides
 
         #Setting up observation and action space
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=[self.act_board_size*self.act_board_size*2], dtype=np.float32)
-        self.action = np.zeros([self.sides, self.act_board_size, self.act_board_size, 2])
+        self.action = np.zeros([self.sides, self.act_board_size, self.act_board_size, 2], dtype=np.float16)
         #1st screen: map(1), 2nd:hp(2) + 2*velocity(2), 3rd attack boards(1) 2 you or the enemy
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=obs_shape, dtype=np.float32)
 
@@ -76,7 +76,7 @@ class Set_Stats(Setup_Var_Init):
         players_per_side = [self.population_map[i*width:(i+1)*width].sum() for i in range(self.sides)]
         if self.rotation:
             players_per_side = [self.population_map[:, i*width:(i+1)*width].sum() for i in range(self.sides)]
-        players_per_side = np.asarray(players_per_side)
+        players_per_side = np.asarray(players_per_side, dtype=np.float16)
         players_per_side /= players_per_side.sum()
         players_per_side *= self.max_players
         players_per_side = players_per_side[::-1]
@@ -111,7 +111,7 @@ class Generate_Players(Set_Stats):
         self.remaining_players = [len(self.player_array[i]) for i in range(self.sides)]
         self.players_per_side = np.copy(self.remaining_players)#contains the original players per side
         self.player_num = id-1#number of players+2
-        self.player_forces = np.zeros(self.player_num)
+        self.player_forces = np.zeros(self.player_num, dtype=np.float16)
         self.r_as = np.ones([self.player_num])
         assert(self.num_types == 3)
         for i in range(self.sides):
@@ -157,13 +157,13 @@ class Generate_Players(Set_Stats):
 class Post_Player_Setup(Generate_Players):
     def __init__(self, **kwargs):
         Generate_Players.__init__(self, **kwargs)
-        self.attacked = np.zeros([self.sides, self.player_num])#Damaged inflicted to side i
-        self.attacked_dist = np.zeros([self.sides, self.player_num])#Damage applied at location of players from side i include friendly fire
-        self.can_see = np.zeros([self.sides, self.player_num])
-        self.web_mat = np.zeros([self.player_num, 2*self.num_subs-1, 2])
-        self.mag_mat = np.zeros([self.player_num, 2*self.num_subs-1])
-        self.k_mat = np.zeros([self.player_num, 2*self.num_subs-1])
-        self.m_mat = np.zeros([self.player_num, 2*self.num_subs-1])
+        self.attacked = np.zeros([self.sides, self.player_num], dtype=np.float16)#Damaged inflicted to side i
+        self.attacked_dist = np.zeros([self.sides, self.player_num], dtype=np.float16)#Damage applied at location of players from side i include friendly fire
+        self.can_see = np.zeros([self.sides, self.player_num], dtype=np.float16)
+        self.web_mat = np.zeros([self.player_num, 2*self.num_subs-1, 2], dtype=np.float16)
+        self.mag_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float16)
+        self.k_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float16)
+        self.m_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float16)
         
 
 class Set_Player_Locs(Post_Player_Setup):
@@ -183,7 +183,7 @@ class Set_Player_Locs(Post_Player_Setup):
                 p_density = np.reshape(p_density, [-1])
                 p_density /= p_density.sum()
                 locations = np.random.choice(np.arange(p_density.shape[0]), size=p_density.shape[0], replace=False, p=p_density)
-                used = np.zeros(p_density.shape[0])
+                used = np.zeros(p_density.shape[0], dtype=np.uint8)
                 #The number of players is self.players_per_side[i]
                 k = 0
                 for j in range(self.players_per_side[i]):#first index is player, next is location
@@ -191,10 +191,10 @@ class Set_Player_Locs(Post_Player_Setup):
                         used[k] = 1
                         k+=1
                     used[k] = 1
-                    location = np.asarray([width*i + locations[k] // board_height, locations[k] % board_height])
+                    location = np.asarray([width*i + locations[k] // board_height, locations[k] % board_height], dtype=np.float16)
 
                     if self.rotation:
-                        location = np.asarray([locations[k] % board_height, width*i + locations[k] // board_height])
+                        location = np.asarray([locations[k] % board_height, width*i + locations[k] // board_height], dtype=np.float16)
 
                     used[np.where(locations == locations[k] + board_height)] = 1
                     used[np.where(locations == locations[k] + board_height+1)] = 1

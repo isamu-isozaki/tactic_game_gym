@@ -58,18 +58,18 @@ class Move(Setup_Rotate_Force):
                     self.vel_mags[id-1] = 0
                     continue
                 position = self.current_balls[k].body._get_position()
-                velocity = self.current_balls[k].body._get_velocity()
+                velocity = np.asarray(self.current_balls[k].body._get_velocity(), dtype=np.float16)
                 speed = np.linalg.norm(velocity)
                 scale = 1
                 if speed > self.max_speed:
                     scale = self.max_speed/speed
-                    self.current_balls[k].body._set_velocity((scale*np.asarray(velocity)).tolist())
+                    self.current_balls[k].body._set_velocity((scale*velocity).tolist())
                     speed = self.max_speed
                 self.player_array[i][j].speed = speed
                 self.vel_mags[id-1] = speed
-                self.player_array[i][j].vel = [self.player_array[i][j].position, self.player_array[i][j].position+scale*np.asarray(velocity)]
-                self.player_array[i][j].position = position
-                self.player_array[i][j].velocity = scale*np.asarray(velocity)
+                self.player_array[i][j].vel = [self.player_array[i][j].position, self.player_array[i][j].position+scale*velocity]
+                self.player_array[i][j].position = np.array(position, dtype=np.float16)
+                self.player_array[i][j].velocity = scale*velocity
                 k += 1
 
 
@@ -88,7 +88,7 @@ class Mobilize(Move):
         # 	if not os.path.exists( self.base_directory   + "/animation"):
         # 			os.makedirs( self.base_directory   + "/animation")
         # 	folders = os.listdir(self.base_directory + "/animation")
-        self.vel_mags = np.zeros(self.player_num)
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
         for t in tqdm(itertools.count()):
             try:
                 for event in pygame.event.get():
@@ -123,8 +123,8 @@ class Attack(Mobilize):
         positions = positions[living]
         velocities = velocities[living]
         num_players = np.sum(self.remaining_players)
-        attacked = np.zeros(num_players)
-        cos_sin = (velocities+np.array([epsilon, epsilon])) / (mags[:, None]+epsilon*np.sqrt(2))
+        attacked = np.zeros(num_players, dtype=np.float16)
+        cos_sin = (velocities+[epsilon, epsilon]) / (mags[:, None]+epsilon*np.sqrt(2))
         rot_matrix = np.concatenate([\
                             np.concatenate([cos_sin[:, 0, None, None],\
                                              cos_sin[:, 1, None, None]], axis = 2),\
@@ -168,7 +168,7 @@ class Attack(Mobilize):
         self.can_see[...] = 0
         self.dead[...] = 0
         self.rewards[...] = 0#make it so that one dies
-        alive_ids = np.asarray(alive)
+        alive_ids = np.asarray(alive, dtype=np.uint8)
         k = -1
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
@@ -235,7 +235,7 @@ class Playable_Game(Attack):
         # 	if not os.path.exists( self.base_directory+ "/animation"):
         # 		os.makedirs( self.base_directory + "/animation")
         # 	folders = os.listdir(self.base_directory  + "/animation")
-        self.vel_mags = np.zeros(self.player_num)
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
         start_pos = None
         for t in tqdm(itertools.count()):
             try:

@@ -39,7 +39,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
 
 
         self.lines = []
-        self.masses = np.zeros(self.player_num)
+        self.masses = np.zeros(self.player_num, dtype=np.float16)
         mass = self.mass
 
         radius = mass**(1/3.)
@@ -86,19 +86,20 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         steps = self.vec_steps
         start_pos = self.switch_to_pymunk(start_pos)
         end_pos = self.switch_to_pymunk(end_pos)
-        movement =np.asarray(end_pos) -  np.asarray(start_pos)
+        movement =np.asarray(end_pos, dtype=np.float16) -  np.asarray(start_pos, dtype=np.float16)
         movement = movement.astype(float)
         mag_div = self.board_size*self.vec_mag_div_constant_frac
         movement /= mag_div
-        mag = np.linalg.norm(movement)
-        if mag > self.player_force_prop*np.sqrt(2):
-            movement *= float(self.player_force_prop*np.sqrt(2))/mag
+        if np.sum(np.abs(movement)) > self.player_force_prop*2:
+            mag = np.linalg.norm(movement)
+            if mag > self.player_force_prop*np.sqrt(2):
+                movement *= float(self.player_force_prop*np.sqrt(2))/mag
         size = self.vec_width#change with scrool or up and down arrow
-        x = np.zeros(self.board_size[0])
-        y = np.zeros(self.board_size[0])
+        x = np.zeros(self.board_size[0], dtype=np.float16)
+        y = np.zeros(self.board_size[0], dtype=np.float16)
         deduct_const = size // steps
         pos = start_pos
-        pos =  np.asarray(pos)
+        pos =  np.asarray(pos, dtype=np.float16)
         while steps > 0:
             start = pos - size
             start[start < 0] = 0
@@ -170,8 +171,8 @@ class Setup_Player_Rank(Setup_Pygame_Pymunk):
         self.player_array =[sort_array(self.player_array[i], aptitude_indices[i]) for i in range(self.sides)]
 
         #Reset ids
-        self.player_rank_id = np.zeros(self.player_num)
-        self.player_side = np.zeros(self.player_num)
+        self.player_rank_id = np.zeros(self.player_num, dtype=np.float16)
+        self.player_side = np.zeros(self.player_num, dtype=np.float16)
         k = 1
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
@@ -189,7 +190,7 @@ class Setup_Player_Rank(Setup_Pygame_Pymunk):
                     if self.player_array[i][k].type == j:
                         type_array.append(self.player_array[i][k])
                         id_types.append(self.player_array[i][k].id)
-                id_types = np.asarray(id_types)
+                id_types = np.asarray(id_types, dtype=np.float16)
                 player_side_array.append(type_array)
                 id_side_array.append(id_types)
             self.player_type_array.append(player_side_array)
@@ -294,7 +295,7 @@ class Setup_Player_Graph(Setup_Player_Rank):
                     except Exception as e:
                         if self.log:
                             print(f"{e}, i: {i}, k: {k}, m: {m}, index: {index}, id: {player.id}")
-                used_indices = np.asarray(used_indices)
+                used_indices = np.asarray(used_indices, dtype=np.uint8)
                 while len(used_indices) > 0:
                     index = used_indices[0]
                     used_indices = used_indices[1:]
@@ -310,11 +311,11 @@ class Set_Board(Setup_Player_Graph):
             print(f"Finished setting up board: {time.time()-self.start}")
     def set_board(self):
         #The board is saved in a fashion where the number of channels is detemined by the number of sides
-        self.board_sight = np.zeros([self.player_num, 18])#holds all x position, y position, rank, side, alive
+        self.board_sight = np.zeros([self.player_num, 18], dtype=np.float16)#holds all x position, y position, rank, side, alive
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 position = self.player_array[i][j].position
-                position = np.asarray(position)
+                position = np.asarray(position, dtype=np.float16)
                 position[position > self.board_size[0]-1] =  self.board_size[0]-1
                 position = position.tolist()
                 self.player_array[i][j].height = self.get_height(*position)
@@ -351,6 +352,8 @@ class Set_Board(Setup_Player_Graph):
                 self.board_sight[k, 17] = player.alive
     def return_alive(self, ids):
         alive_index = 17
+        if type(ids) == list:
+            ids = np.array(ids, dtype=np.uint8)
         return self.board_sight[ids-1, alive_index]
     def get_alive_mask(self):
         all_ids = np.arange(self.player_num) + 1
@@ -376,7 +379,7 @@ class Get_Sight(Set_Board):
                     if not player.alive or not (self.full_view or self.can_see[i, player.id-1]):
                         continue
                     position = player.position
-                    position = np.asarray(position)
+                    position = np.asarray(position, dtype=np.float16)
                     position[position > self.board_size[0]-1] =  self.board_size[0]-1
                     self.obs_full[i, int(position[0]), int(position[1]), 1] = player.hp if i == i2 else 0
                     self.obs_full[i, int(position[0]), int(position[1]), 2] = player.hp if i != i2 else 0
@@ -398,5 +401,5 @@ class Get_Sight(Set_Board):
             for m in range(8):
                 print_obs_full_stats(m)
             """
-            resized_obs = cv2.resize(self.obs_full[i, ..., 1:], (self.obs_board_size, self.obs_board_size))
-            self.obs[i, ..., 1:] = resized_obs.copy()
+            resized_obs = cv2.resize(self.obs_full[i, ..., 1:].astype(np.float32), (self.obs_board_size, self.obs_board_size))
+            self.obs[i, ..., 1:] = resized_obs.copy().astype(np.float16)
