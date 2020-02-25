@@ -10,27 +10,14 @@ class Move(Setup_Rotate_Force):
         Setup_Rotate_Force.__init__(self, **kwargs)
     def move(self):
         living = self.get_alive_mask() == 1
-        river = self.board_sight[:, 9] == 0
-        is_drag = living & river
         forces = self.board_sight[living, 13:15].copy()
         forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
-        drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
-        #spring_force = self.get_springs()
-        #forces += spring_force
-        k = 0
-        for i in range(self.sides):
-            for j in range(self.players_per_side[i]):
-                if not self.player_array[i][j].alive:
-                    continue
-                player = self.player_array[i][j]
-                force = forces[k]
-                if is_drag[is_drag].shape[0] != 0:
-                    force += self.get_drag(player, drag_forces[drag_k])
-                force += self.get_spring(player)
-                forces[k] = force
-                if is_drag[living][k]:
-                    drag_k+=1
-                k+=1
+        #drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
+        #total_mag = (self.player_force*self.player_force_prop+self.align_force_prop+self.cohesion_force_prop)
+        #At half of max velocity, damping in velocity d
+        #forces -= self.board_sight[living, 2:4]*total_mag/(self.max_speed*self.damping_start)
+        if self.use_boid:
+            forces += self.get_boids(living)
 
         z = np.abs(self.board_sight[living, 11].copy())#z index of rotated 3d array
         sign = np.sign(np.einsum("...i, ...i->...", forces, self.board_sight[living, 15:17]))
@@ -42,6 +29,9 @@ class Move(Setup_Rotate_Force):
                     continue
                 player = self.player_array[i][j]
                 force = forces[k]
+                if self.use_spring:
+                    force += self.get_spring(player)
+                
                 force = self.rotate_force(player, force, z[k])
 
                 try:
@@ -55,18 +45,18 @@ class Move(Setup_Rotate_Force):
             for j in range(self.players_per_side[i]):
                 id = self.player_array[i][j].id
                 if not self.player_array[i][j].alive:
-                    self.vel_mags[id-1] = 0
+                    self.vel_mags[id] = 0
                     continue
                 position = self.current_balls[k].body._get_position()
                 velocity = np.asarray(self.current_balls[k].body._get_velocity(), dtype=np.float16)
-                speed = np.linalg.norm(velocity)
+                speed = self.current_balls[k].body.velocity.length
                 scale = 1
                 if speed > self.max_speed:
                     scale = self.max_speed/speed
                     self.current_balls[k].body._set_velocity((scale*velocity).tolist())
                     speed = self.max_speed
                 self.player_array[i][j].speed = speed
-                self.vel_mags[id-1] = speed
+                self.vel_mags[id] = speed
                 self.player_array[i][j].vel = [self.player_array[i][j].position, self.player_array[i][j].position+scale*velocity]
                 self.player_array[i][j].position = np.array(position, dtype=np.float16)
                 self.player_array[i][j].velocity = scale*velocity
@@ -168,7 +158,6 @@ class Attack(Mobilize):
         self.can_see[...] = 0
         self.dead[...] = 0
         self.rewards[...] = 0#make it so that one dies
-        alive_ids = np.asarray(alive, dtype=np.uint8)
         k = -1
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
@@ -211,8 +200,8 @@ class Attack(Mobilize):
                 if self.player_array[i][j].alive and self.player_array[i][j].id in alive:
                     alive.remove(self.player_array[i][j].id)
         for id in alive:#all dead
-            self.space.remove(self.balls[id-1], self.balls[id-1].body)
-            self.current_balls.remove(self.balls[id-1])
+            self.space.remove(self.balls[id], self.balls[id].body)
+            self.current_balls.remove(self.balls[id])
 
 
         self.set_board()
@@ -276,7 +265,7 @@ class Playable_Game(Attack):
                 # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
                 # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
 
-                self.reset_web()
+                #self.reset_web()
                 self.set_board()
                 if t>=self.terminate_turn or self.end():
                     pygame.quit()

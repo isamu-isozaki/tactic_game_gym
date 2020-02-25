@@ -60,7 +60,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
 
                 self.player_array[i][j].mass = mass
                 self.player_array[i][j].radius = radius
-                self.masses[self.player_array[i][j].id-1] = mass
+                self.masses[self.player_array[i][j].id] = mass
                 body = pymunk.Body(mass, moment)
                 body.position = self.player_array[i][j].position[0], self.player_array[i][j].position[1]
                 shape = pymunk.Circle(body, radius)
@@ -84,10 +84,9 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         self.started = True
     def interact_move(self, start_pos, end_pos, epsilon=1e-10):
         steps = self.vec_steps
-        start_pos = self.switch_to_pymunk(start_pos)
-        end_pos = self.switch_to_pymunk(end_pos)
-        movement =np.asarray(end_pos, dtype=np.float16) -  np.asarray(start_pos, dtype=np.float16)
-        movement = movement.astype(float)
+        start_pos = np.array(self.switch_to_pymunk(start_pos), dtype=np.float16)
+        end_pos = np.array(self.switch_to_pymunk(end_pos), dtype=np.float16)
+        movement = end_pos-start_pos
         mag_div = self.board_size*self.vec_mag_div_constant_frac
         movement /= mag_div
         if np.sum(np.abs(movement)) > self.player_force_prop*2:
@@ -104,8 +103,8 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
             start = pos - size
             start[start < 0] = 0
             end = pos + size
-            x[start[0]:end[0]]+=1
-            y[start[1]:end[1]]+=1
+            x[int(start[0]):int(end[0])]+=1
+            y[int(start[1]):int(end[1])]+=1
             steps -= 1
             size -= deduct_const
         output = np.einsum("i,j->ij",x,y)
@@ -135,7 +134,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
                 color = colors[i]
                 for j in range(self.players_per_side[i]):
                     player = self.player_array[i][j]
-                    if not player.alive or not (self.full_view or self.can_see[self.interact_side, player.id-1]):
+                    if not player.alive or not (self.full_view or self.can_see[self.interact_side, player.id]):
                         continue
                     try:
                         x, y = player.vel
@@ -144,13 +143,23 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
                         hp = player.hp
                         opacity = hp/(self.hp*2)
                         opacity = 1 if opacity > 1 else opacity
+                        opactiy = 0 if opacity is None else opacity
                         color_player = color.tolist() + [int(255*opacity)]
                         #This is a problem. Pygame only supports integers. Thus, animations won't be fluid
                         pygame.draw.circle(self.screen, color_player,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
                         pygame.draw.line(self.screen, color_player, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
+                        if self.draw_connections:
+                            for id in player.web:
+                                if self.return_alive(id):
+                                    y = self.board_sight[id, :2]
+                                    y = self.switch_to_pymunk(y)
+                                    pygame.draw.line(self.screen, color_player, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
                     except Exception as e:
                         if self.log:
                             print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+                            import traceback
+
+                            print(traceback.format_exc())
 
 
         self.space.step(self.game_timestep)
@@ -173,7 +182,7 @@ class Setup_Player_Rank(Setup_Pygame_Pymunk):
         #Reset ids
         self.player_rank_id = np.zeros(self.player_num, dtype=np.float16)
         self.player_side = np.zeros(self.player_num, dtype=np.float16)
-        k = 1
+        k = 0
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 self.player_array[i][j].id = k
@@ -288,10 +297,13 @@ class Setup_Player_Graph(Setup_Player_Rank):
                             continue
                         used_indices.append(k)
                         index = index[0]
-                        self.player_array[i][unused_k[k]].sub_ids = self.player_type_array[i][m][index].sub_ids
+                        sub_ids = self.player_type_array[i][m][index].sub_ids
+                        superior_id = self.player_type_array[i][m][index].superior_id
+                        self.player_array[i][unused_k[k]].sub_ids = sub_ids
                         self.player_array[i][unused_k[k]].sub_js = self.player_type_array[i][m][index].sub_js
-                        self.player_array[i][unused_k[k]].superior_id = self.player_type_array[i][m][index].superior_id
+                        self.player_array[i][unused_k[k]].superior_id = superior_id
                         self.player_array[i][unused_k[k]].superior_j = self.player_type_array[i][m][index].superior_j
+                        self.player_array[i][unused_k[k]].web = (sub_ids if sub_ids != None else []) + ([superior_id] if superior_id != None else [])
                     except Exception as e:
                         if self.log:
                             print(f"{e}, i: {i}, k: {k}, m: {m}, index: {index}, id: {player.id}")
@@ -321,9 +333,8 @@ class Set_Board(Setup_Player_Graph):
                 self.player_array[i][j].height = self.get_height(*position)
                 self.player_array[i][j].cos = self.cos[int(position[0]), int(position[1])]
                 self.player_array[i][j].sin = self.sin[int(position[0]), int(position[1])]
-
                 player = self.player_array[i][j]
-                k = player.id-1
+                k = player.id      
                 self.board_sight[k, :2] = player.position
                 self.board_sight[k, 2:4] = player.velocity
                 self.board_sight[k, 4] = player.rank
@@ -352,11 +363,9 @@ class Set_Board(Setup_Player_Graph):
                 self.board_sight[k, 17] = player.alive
     def return_alive(self, ids):
         alive_index = 17
-        if type(ids) == list:
-            ids = np.array(ids, dtype=np.uint8)
-        return self.board_sight[ids-1, alive_index]
+        return self.board_sight[ids, alive_index]
     def get_alive_mask(self):
-        all_ids = np.arange(self.player_num) + 1
+        all_ids = np.arange(self.player_num)
         return self.return_alive(all_ids)
 
 class Get_Sight(Set_Board):
@@ -376,7 +385,7 @@ class Get_Sight(Set_Board):
             for i2 in range(self.sides):
                 for j in range(self.players_per_side[i2]):
                     player = self.player_array[i2][j]
-                    if not player.alive or not (self.full_view or self.can_see[i, player.id-1]):
+                    if not player.alive or not (self.full_view or self.can_see[i, player.id]):
                         continue
                     position = player.position
                     position = np.asarray(position, dtype=np.float16)
@@ -385,7 +394,7 @@ class Get_Sight(Set_Board):
                     self.obs_full[i, int(position[0]), int(position[1]), 2] = player.hp if i != i2 else 0
                     self.obs_full[i, int(position[0]), int(position[1]), 3:5] = player.velocity.copy() if i == i2 else [0,0]
                     self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i != i2 else [0,0]
-                    self.obs_full[i, int(position[0]), int(position[1]), 7] = self.attacked_dist[i, player.id-1]
+                    self.obs_full[i, int(position[0]), int(position[1]), 7] = self.attacked_dist[i, player.id]
             #normalize
             self.obs_full[i, np.abs(self.obs_full[i]) < epsilon] = 0
             self.obs_full[i, ..., 1:3] /= self.hp*(1+self.rand_prop)

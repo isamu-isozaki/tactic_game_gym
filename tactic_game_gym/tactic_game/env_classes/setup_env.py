@@ -103,14 +103,14 @@ class Generate_Players(Set_Stats):
     def __init__(self, **kwargs):
         Set_Stats.__init__(self, **kwargs)
         self.player_array = []
-        id = 1
+        id = 0
         for i in range(self.sides):
             self.player_array.append([Player(self.stats[0][i][j], self.stats[1][i][j], self.stats[2][i][j], id+j, i) for j in range(len(self.stats[0][i]))])
             id += len(self.stats[0][i])
 
         self.remaining_players = [len(self.player_array[i]) for i in range(self.sides)]
         self.players_per_side = np.copy(self.remaining_players)#contains the original players per side
-        self.player_num = id-1#number of players+2
+        self.player_num = id#number of players+2
         self.player_forces = np.zeros(self.player_num, dtype=np.float16)
         self.r_as = np.ones([self.player_num])
         assert(self.num_types == 3)
@@ -148,8 +148,8 @@ class Generate_Players(Set_Stats):
                     self.player_array[i][j].base_vision += (self.cavarly_scale-1)#To compensate for larger size
                     self.player_array[i][j].k *= self.cavarly_k
                 self.player_array[i][j].r_a /= np.sqrt(2)
-                self.player_forces[self.player_array[i][j].id-1] = self.player_array[i][j].player_force
-                self.r_as[self.player_array[i][j].id-1] = self.player_array[i][j].r_a
+                self.player_forces[self.player_array[i][j].id] = self.player_array[i][j].player_force
+                self.r_as[self.player_array[i][j].id] = self.player_array[i][j].r_a
         
         if self.log:
             print(f"Finished generating players: {time.time()-self.start}")

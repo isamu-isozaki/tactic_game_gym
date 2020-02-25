@@ -68,10 +68,10 @@ class Gym_Env(Playable_Game):
             for i2 in range(self.sides):
                 for j in range(self.players_per_side[i2]):
                     player = self.player_array[i2][j]
-                    if not player.alive or not (self.full_view or self.can_see[i, player.id-1]):
+                    if not player.alive or not (self.full_view or self.can_see[i, player.id]):
                         continue
                     try:
-                        xys = self.board_sight[player.id-1, :4].copy()
+                        xys = self.board_sight[player.id, :4].copy()
                         x = xys[:2]
                         y = xys[2:]
                         y += x

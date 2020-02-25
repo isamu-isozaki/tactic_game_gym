@@ -25,6 +25,7 @@ class Player:
 		self.rank = 1
 		self.superior_id = None
 		self.superior_j = None
+		self.web = []
 		self.superior_pos = None
 		self.sub_ids = None#id of subordinates
 		self.sub_js = None
@@ -34,7 +35,7 @@ class Player:
 		self.sight = None
 		self.force_prop = None
 		self.k=1.
-		self.velocity = [0,0]
+		self.velocity = np.array([0,0], dtype=np.float16)
 		self.vel = None
 		self.angle = [0,0]
 		self.height = 0
