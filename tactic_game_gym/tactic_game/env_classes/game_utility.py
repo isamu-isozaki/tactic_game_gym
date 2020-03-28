@@ -103,6 +103,8 @@ class Attack(Mobilize):
         positions = self.board_sight[:, :2].copy()
         velocities = self.board_sight[:, 2:4].copy()
         living = self.get_alive_mask() == 1
+        is_wall = self.player_type_mask == 3#Walls can't attack
+        is_archer = self.player_type_mask == 0#Archer's range is higher when staying still
         alive = []
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
@@ -126,6 +128,8 @@ class Attack(Mobilize):
         #X[i], Y[i] is the x and y coordinates of all of the players when the ith player is at (0,0)
         XY = np.concatenate([X[..., None], Y[..., None]], axis = 2)
         attack_range_mags = mags / (self.attrange_div_const*self.max_speed)
+        attack_range_mags[is_archer[living]] = 1/self.attrange_div_const - attack_range_mags[is_archer]#The higher the velocity, the lower the range
+        attack_range_mags[is_wall[living]] = 0
         base_index = 12
         attack_range = self.range_factor*np.einsum("i,i->i",attack_range_mags, self.board_sight[living, base_index])[:, None]#set max value of einsum to 1
         #attack_range = np.ones(num_players) + 10

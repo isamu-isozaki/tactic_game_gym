@@ -1,7 +1,6 @@
 from tactic_game_gym.tactic_game.game_args import game_args_parser
 
 from tactic_game_gym.tactic_game.game_env import Game_Env_v0 as Game_Env
-import numpy as np
 import sys
 import cProfile
 

@@ -1,5 +1,9 @@
 from tactic_game_gym.tactic_game.env_classes.map_env import Map_Env
 from tactic_game_gym.tactic_game.player import Player
+from tactic_game_gym.tactic_game.player_types.archer import Archer
+from tactic_game_gym.tactic_game.player_types.cavarly import Cavarly
+from tactic_game_gym.tactic_game.player_types.infantry import Infantry
+from tactic_game_gym.tactic_game.player_types.wall import Wall
 
 import random, time, os, time, cv2
 from gym import spaces
@@ -103,53 +107,36 @@ class Generate_Players(Set_Stats):
     def __init__(self, **kwargs):
         Set_Stats.__init__(self, **kwargs)
         self.player_array = []
-        id = 0
+        
+        assert self.archer_prop + self.cavarly_prop + self.infantry_prop + self.wall_prop== 1
+        probs = [self.archer_prop, self.cavarly_prop, self.infantry_prop, self.wall_prop]
+        thresholds = [np.sum(probs[:i+1]) for i in range(len(probs))]
+        classes = [Archer, Cavarly, Infantry, Wall]
+        player_id = 0
         for i in range(self.sides):
-            self.player_array.append([Player(self.stats[0][i][j], self.stats[1][i][j], self.stats[2][i][j], id+j, i) for j in range(len(self.stats[0][i]))])
-            id += len(self.stats[0][i])
+            army = []
+            for j in range(len(self.stats[0][i])):
+                player = None
+                random_val = random.random()
+                for k, threshold in enumerate(thresholds):
+                    if random_val < threshold:
+                        army.append(classes[k](self.stats[0][i][j], self.stats[1][i][j], self.stats[2][i][j], player_id, i, **self.kwargs))
+                        player_id += 1
+                        break
+            self.player_array.append(army)
 
         self.remaining_players = [len(self.player_array[i]) for i in range(self.sides)]
         self.players_per_side = np.copy(self.remaining_players)#contains the original players per side
-        self.player_num = id#number of players+2
-        self.player_forces = np.zeros(self.player_num, dtype=np.float16)
+        self.player_num = player_id#number of players+2
+        self.player_forces = np.zeros([self.player_num], dtype=np.float16)
         self.r_as = np.ones([self.player_num])
-        assert(self.num_types == 3)
+        self.player_type_mask = np.zeros(self.player_num, dtype=np.uint8)
+        player_types = ["archer", "cavarly", "infantry", "wall"]
         for i in range(self.sides):
-            cavarly_prop = get_random_normal_with_min(self.cavarly_prop, self.rand_troop_prop, set_max=True)
-            archer_prop = get_random_normal_with_min(self.archer_prop, self.rand_troop_prop, set_max=True)        
-            infantry_prop = 1 - cavarly_prop - archer_prop
-            player_types = np.reshape([infantry_prop, archer_prop, cavarly_prop], self.num_types)
             for j in range(self.players_per_side[i]):
-                index = np.random.choice(np.arange(self.num_types), p=player_types)
-                self.player_array[i][j].type = index#0 is infantry, 1 ia archer and 2 is cavarly
-                if self.rand_params:
-                    self.player_array[i][j].base_vision = get_random_normal_with_min(self.base_vision, self.rand_prop)
-                    self.player_array[i][j].player_force = get_random_normal_with_min(self.player_force, self.rand_prop)
-                    self.player_array[i][j].max_speed = get_random_normal_with_min(self.max_speed, self.rand_prop)
-                else:
-                    self.player_array[i][j].base_vision = self.base_vision
-                    self.player_array[i][j].player_force = self.player_force
-                    self.player_array[i][j].max_speed = self.max_speed
-                self.player_array[i][j].radius = 1.
-                self.player_array[i][j].r_a = self.r_a
-                self.player_array[i][j].force_prop = 1.
-
-                if index == 1:
-                    self.player_array[i][j].base_vision *= self.archer_constant
-                    self.player_array[i][j].hp /= np.sqrt(self.archer_constant)
-                elif index == 2:
-                    self.player_array[i][j].hp *= self.cavarly_hp
-                    self.player_array[i][j].radius *= self.cavarly_scale
-                    self.player_array[i][j].r_a *= self.cavarly_scale
-                    self.player_array[i][j].player_force *= self.cavarly_force
-                    self.player_array[i][j].force_prop = self.cavarly_force
-
-                    self.player_array[i][j].max_speed *= self.cavarly_max_speed
-                    self.player_array[i][j].base_vision += (self.cavarly_scale-1)#To compensate for larger size
-                    self.player_array[i][j].k *= self.cavarly_k
-                self.player_array[i][j].r_a /= np.sqrt(2)
                 self.player_forces[self.player_array[i][j].id] = self.player_array[i][j].player_force
                 self.r_as[self.player_array[i][j].id] = self.player_array[i][j].r_a
+                self.player_type_mask[self.player_array[i][j].id] = player_types.index(self.player_array[i][j].player_name)
         
         if self.log:
             print(f"Finished generating players: {time.time()-self.start}")

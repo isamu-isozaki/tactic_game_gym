@@ -48,6 +48,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 mass *= self.player_array[i][j].radius**3
+                mass *= self.player_array[i][j].density
                 if self.rand_params:
                     mass = np.random.normal(mass, self.rand_prop*mass)
                     if mass < 0:
