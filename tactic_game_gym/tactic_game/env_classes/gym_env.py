@@ -29,19 +29,21 @@ class Gym_Env(Playable_Game):
         if not self.started:
             self.start_game()
         side = self.side
-        action = np.reshape(action, [self.act_board_size, self.act_board_size, 2])
+        action = np.reshape(action, [self.act_board_size, self.act_board_size, self.num_types, 2])
         action *= self.player_force_prop
         if self.is_train:
             size = self.act_board_size // self.stage
             for i in range(self.stage):
                 for j in range(self.stage):
-                    for k in range(2):
-                        action_segment = action[size*i:size*(i+1), size*j:size*(j+1), k]
-                        action_mean = action_segment.mean()
-                        action_std = action_segment.std()
-                        action[size*i:size*(i+1), size*j:size*(j+1), k] = np.random.normal(action_mean, action_std)
+                    for l in range(self.num_types):
+                        for k in range(2):
+                            action_segment = action[size*i:size*(i+1), size*j:size*(j+1), l,  k]
+                            action_mean = action_segment.mean()
+                            action_std = action_segment.std()
+                            action[size*i:size*(i+1), size*j:size*(j+1), l, k] = np.random.normal(action_mean, action_std)
         self.action[self.side] = action.copy()
-        self.move_board[side] = cv2.resize(action.astype(np.float32), (self.board_size[0], self.board_size[1])).astype(np.float16)
+        for i in range(self.num_types):
+            self.move_board[side, i] = cv2.resize(action[:, :, i, :].astype(np.float32), (self.board_size[0], self.board_size[1])).astype(np.float16)
         # if self.save_imgs:
         # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
         # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))

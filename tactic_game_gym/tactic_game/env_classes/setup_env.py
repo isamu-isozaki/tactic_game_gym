@@ -45,13 +45,16 @@ class Setup_Var_Init(Map_Env):
         #For playing game
         self.vec_width = self.board_size[0]//self.sides
         self.interact_side = np.random.choice(np.arange(self.sides))
+        self.interact_type = np.random.choice(np.arange(self.num_types))
         if self.log:
+            player_types = ["archer", "cavarly", "infantry", "wall"]
             print(f"You are side {self.interact_side}")
+            print("You are ", player_types[self.interact_type])
 
         #numpy arrays below
         self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3], dtype=np.float16)
         self.finished_sides = np.zeros(self.sides, dtype=np.float16)
-        self.move_board = np.zeros([self.sides] + self.board_size+[2], dtype=np.float16)
+        self.move_board = np.zeros([self.sides] + [self.num_types] + self.board_size+[2], dtype=np.float16)
         obs_shape = (self.obs_board_size, self.obs_board_size, 1+2+2*2+1)
         obs_full_shape  = (*self.board_size, 1+2+2*2+1)
         self.obs = np.zeros([self.sides] + list(obs_shape), dtype=np.float16)
@@ -63,8 +66,8 @@ class Setup_Var_Init(Map_Env):
         self.rewards = np.zeros(self.sides, dtype=np.float16)#the amount that died for other sides
 
         #Setting up observation and action space
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=[self.act_board_size*self.act_board_size*2], dtype=np.float32)
-        self.action = np.zeros([self.sides, self.act_board_size, self.act_board_size, 2], dtype=np.float16)
+        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=[self.act_board_size*self.act_board_size*self.num_types*2], dtype=np.float32)
+        self.action = np.zeros([self.sides, self.act_board_size, self.act_board_size, self.num_types, 2], dtype=np.float16)
         #1st screen: map(1), 2nd:hp(2) + 2*velocity(2), 3rd attack boards(1) 2 you or the enemy
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=obs_shape, dtype=np.float32)
 

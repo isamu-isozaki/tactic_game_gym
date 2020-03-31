@@ -118,11 +118,11 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         output /= np.abs(output).max()
         valid_mask = output > 0
         try:
-            self.move_board[self.interact_side,valid_mask] += np.einsum("...,i->...i", output, movement)[valid_mask]
+            self.move_board[self.interact_side,self.interact_type, valid_mask] += np.einsum("...,i->...i", output, movement)[valid_mask]
             self.move_board *= float(self.player_force_prop)/(np.abs(self.move_board+epsilon).max())
         except Exception as e:
             if self.log:
-                print(f"{e}, move board shape: {self.move_board[self.interact_side,valid_mask].shape}, output shape: {output.shape}, movement shape: {movement.shape}")
+                print(f"{e}, move board shape: {self.move_board[self.interact_side,self.interact_type,valid_mask].shape}, output shape: {output.shape}, movement shape: {movement.shape}")
         if self.log:
             print(f"self.move_board mean: {self.move_board.mean()}, start position: {start_pos}, end position: {end_pos}")
     def clear_screen(self):
@@ -265,7 +265,7 @@ class Set_Board(Setup_Player_Graph):
                         print(f"Cosines: {player.cos}, Sine: {player.sin}")
                 self.board_sight[k, 12] = player.base_vision
                 try:
-                    self.board_sight[k, 13:15] = self.move_board[int(player.side),int(position[0]),int(position[1])]
+                    self.board_sight[k, 13:15] = self.move_board[int(player.side),int(player.type), int(position[0]),int(position[1])]
                 except Exception as e:
                     if self.log:
                         print(f"{e}, move board shape: {self.move_board.shape}, side: {player.side}, position: {player.position}, index: {[player.side,player.position[0],player.position[1]]}")
