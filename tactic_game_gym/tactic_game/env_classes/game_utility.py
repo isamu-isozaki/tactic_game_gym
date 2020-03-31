@@ -219,6 +219,16 @@ class Playable_Game(Attack):
         self.render_game()
         if self.t != 0 and self.t % self.moves_without_attack == 0:
             self.attack()
+        self.reset_player_web()
+    def reset_player_web(self):
+        alive = self.get_alive_mask() == 1
+        for i in range(self.sides):
+            for j in range(self.players_per_side[i]):
+                new_web = []
+                for web_id in self.player_array[i][j].web:
+                    if alive[web_id]:
+                        new_web.append(web_id)
+                self.player_array[i][j].web = new_web
     def run_env(self):
         """
         Test if environment is running properly. Show argument must be true

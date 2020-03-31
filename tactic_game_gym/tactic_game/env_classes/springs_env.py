@@ -15,22 +15,16 @@ class Setup_Springs(Setup_Web):
         superior_mass = self.masses[player.superior_id].copy() if player.superior_id != None else None
         sub_masses = self.masses[sub_ids].copy() if player.sub_ids != None else None
         ks = None
-        ms = None
         if player.superior_id == None:
             ks = sub_k
-            ms = sub_masses
             alive = self.return_alive(sub_ids)
             ks = ks[alive==1]
-            ms = ms[alive==1]
         elif player.sub_ids == None:
             ks = player_k
-            ms = superior_mass
         else:
             ks = np.concatenate([np.asarray([player_k], dtype=np.float16), sub_k], axis=0)
-            ms = np.concatenate([np.asarray([superior_mass], dtype=np.float16), sub_masses], axis=0)
             alive = np.concatenate([[self.return_alive(player.superior_id)], self.return_alive(player.sub_ids)], axis=0)
             ks = ks[alive==1]
-            ms = ms[alive==1]
 
         player_mass = self.masses[player.id].copy()
         mag[mag == 0] = 1
@@ -40,9 +34,8 @@ class Setup_Springs(Setup_Web):
             if self.log:
                 print(f"{e}, mag: {mag}, web: {web}")
         ks = np.reshape(ks, [-1])
-        ms = np.reshape(ms, [-1])
         try:
-            force = np.diag(ks) @(web-radiis*2)- 2*np.reshape(np.sqrt(ks*(ms+player_mass)/(ms*player_mass)), (-1, 1))@np.reshape(player_velocity, (1,2))
+            force = np.diag(ks) @(web-radiis*2)- self.spring_damping_factor*np.reshape(player_velocity, (1,2))
         except Exception as e:
             if self.log:
                 print(f"{e}, web: {web}, web shape: {web.shape}, radiis: {radiis}, radiis shape: {radiis.shape}, ms: {ms}, ms shape: {ms.shape}, ks: {ks}, ks shape: {ks.shape}")

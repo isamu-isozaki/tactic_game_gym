@@ -30,8 +30,8 @@ class Setup_Web(Get_Sight):
         return web
     def get_web_and_mag(self, player):
         web = None
-        if self.webs[player.id-1] is not None:
-            web = self.webs[player.id-1]
+        if self.webs[player.id] is not None:
+            web = self.webs[player.id]
         else:
             player_pos = self.board_sight[player.id, :2].copy()
             web = np.reshape(self.board_sight[player.web, :2].copy(), (-1, 2))
@@ -45,13 +45,13 @@ class Setup_Web(Get_Sight):
 
             if web is not None:
                 web -= player_pos
-            self.webs[player.id -1] = web
+            self.webs[player.id] = web
         mag = None
         if web is None:
             return web, mag
-        if self.mags[player.id-1] is not None:
-            mag = self.mags[player.id-1]
+        if self.mags[player.id] is not None:
+            mag = self.mags[player.id]
         else:
             mag = np.linalg.norm(web, axis=1)
-            self.mags[player.id -1] = mag
+            self.mags[player.id] = mag
         return web, mag	

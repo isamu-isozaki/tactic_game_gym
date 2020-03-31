@@ -41,7 +41,11 @@ class Player:
 		self.angle = [0,0]
 		self.height = 0
 		self.density = 1
+		self.color= (0,0,0,0)
 		self.args = kwargs
+	def set_position(self, pos):
+		self.position = pos
+		self.vel = [pos, pos]
 	def apply_force(self, force, body):
 		try:
 			self.force = force.tolist()

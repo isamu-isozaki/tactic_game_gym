@@ -1,5 +1,6 @@
 from tactic_game_gym.tactic_game.env_classes.setup_env import Final_Var_Setup
-from tactic_game_gym.tactic_game.utility import get_n_colors
+from tactic_game_gym.tactic_game.utility import get_n_colors, get_network
+
 
 import random, time, os, logging, pymunk, sys, time, cv2
 from gym import spaces
@@ -41,10 +42,9 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         self.lines = []
         self.masses = np.zeros(self.player_num, dtype=np.float16)
         mass = self.mass
-
         radius = mass**(1/3.)
         moment = pymunk.moment_for_circle(mass, 0, radius)
-        colors = get_n_colors(self.sides)
+        colors = get_n_colors(n=self.sides*self.num_types)
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 mass *= self.player_array[i][j].radius**3
@@ -57,15 +57,21 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
 
                 radius = mass**(1/3.)
                 moment = pymunk.moment_for_circle(mass, 0, radius)
-                colors = get_n_colors(self.sides)
 
                 self.player_array[i][j].mass = mass
                 self.player_array[i][j].radius = radius
-                self.masses[self.player_array[i][j].id] = mass
+                player = self.player_array[i][j]
+                self.masses[player.id] = mass
                 body = pymunk.Body(mass, moment)
                 body.position = self.player_array[i][j].position[0], self.player_array[i][j].position[1]
                 shape = pymunk.Circle(body, radius)
-                shape.color = (*colors[i], 255)
+                mask = pymunk.ShapeFilter.ALL_MASKS
+                for k in range(self.num_types):
+                    if k != player.type:
+                        mask = mask ^ (i*self.num_types + k)
+                shape.filter = pymunk.ShapeFilter(categories=i*self.num_types+player.type, mask=mask)
+                shape.color = (*colors[i*self.num_types+player.type], 255)
+                self.player_array[i][j].color = (*colors[i*self.num_types+player.type], 255)
                 self.space.add(body, shape)
                 self.balls.append(shape)
                 mass = self.mass
@@ -130,22 +136,22 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
             side = self.interact_side
             #self.screen.blit(self.surf, (0,0))
             #draw_width = self.draw_width
-            colors = get_n_colors(self.sides)
             for i in range(self.sides):
-                color = colors[i]
                 for j in range(self.players_per_side[i]):
                     player = self.player_array[i][j]
                     if not player.alive or not (self.full_view or self.can_see[self.interact_side, player.id]):
                         continue
                     try:
                         x, y = player.vel
+                        if np.isnan(y[0]):
+                            y = x.copy()
                         x = self.switch_to_pymunk(x)
                         y = self.switch_to_pymunk(y)
                         hp = player.hp
                         opacity = hp/(self.hp*2)
                         opacity = 1 if opacity > 1 else opacity
                         opactiy = 0 if opacity is None else opacity
-                        color_player = color.tolist() + [int(255*opacity)]
+                        color_player = list(player.color[:3]) + [int(255*opacity)]
                         #This is a problem. Pygame only supports integers. Thus, animations won't be fluid
                         pygame.draw.circle(self.screen, color_player,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
                         pygame.draw.line(self.screen, color_player, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
@@ -157,7 +163,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
                                     pygame.draw.line(self.screen, color_player, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
                     except Exception as e:
                         if self.log:
-                            print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}")
+                            print(f"{e}. color: {player.color}. position: {player.position}, radius: {player.radius}, x: {x}, y: {y}")
                             import traceback
 
                             print(traceback.format_exc())
@@ -167,7 +173,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         if self.show:
             pygame.display.flip()
 
-class Setup_Player_Rank(Setup_Pygame_Pymunk):
+class Setup_Player_Graph(Setup_Pygame_Pymunk):
     def __init__(self, **kwargs):
         Setup_Pygame_Pymunk.__init__(self, **kwargs)
         self.det_heiarchy()
@@ -199,123 +205,30 @@ class Setup_Player_Rank(Setup_Pygame_Pymunk):
                 for k in range(self.players_per_side[i]):
                     if self.player_array[i][k].type == j:
                         type_array.append(self.player_array[i][k])
-                        id_types.append(self.player_array[i][k].id)
+                        id_types.append(int(self.player_array[i][k].id))
                 id_types = np.asarray(id_types, dtype=np.float16)
                 player_side_array.append(type_array)
                 id_side_array.append(id_types)
             self.player_type_array.append(player_side_array)
             self.player_type_ids.append(id_side_array)
-
-        sum_of_player_array = 0
+        networks = []
+        for id_side_array in self.player_type_ids:
+            side_network = []
+            for id_type_array in id_side_array:
+                side_network.append(get_network(id_type_array, self.num_subs))
+            networks.append(side_network)
         for i in range(self.sides):
-            sum_of_player_array += len(self.player_array[i])
-        sum_of_player_type_array = 0
-        for i in range(self.sides):
-            for j in range(self.num_types):
-                sum_of_player_type_array += len(self.player_type_array[i][j])
-        assert(sum_of_player_array == sum_of_player_type_array)
-        #The players are sorted according to their aptitude
+            for j in range(self.players_per_side[i]):
+                player = self.player_array[i][j]
+                graph = networks[i][player.type].pop(0)
+                self.player_array[i][j].rank = graph["rank"]
+                self.player_array[i][j].sub_ids = graph["subordinates"]
+                self.player_array[i][j].superior_id = graph["superior"]
+                sub_ids = self.player_array[i][j].sub_ids
+                superior_id = self.player_array[i][j].superior_id
+                self.player_array[i][j].web = (sub_ids if sub_ids != None else []) + ([superior_id] if superior_id != None else [])
+                self.player_side[player.id] = i
 
-        self.player_ranks = [[np.ones(len(self.player_type_array[i][j])) for j in range(self.num_types)] for i in range(self.sides)]
-        #The rank is determined by continuously having players ranked in the top 20% having a 1 higher rank than the rest
-
-        #The minimum rank is 1
-        rank_sizes = [[len(self.player_ranks[i][j])// self.num_subs for j in range(self.num_types)] for i in range(self.sides)]
-
-        for i in range(self.sides):
-            for j in range(self.num_types):
-                while rank_sizes[i][j] > 0:
-                    self.player_ranks[i][j][:rank_sizes[i][j]] += 1
-                    rank_sizes[i][j] = rank_sizes[i][j] // self.num_subs
-        #set player rank from what was determined before7->later
-        m=0
-        for i in range(self.sides):
-            l = 0
-            for j in range(self.num_types):
-                for k in range(len(self.player_type_array[i][j])):
-                    self.player_array[i][l].rank =  self.player_ranks[i][j][k]
-                    self.player_type_array[i][j][k].rank = self.player_ranks[i][j][k]
-                    self.player_rank_id[m] = self.player_ranks[i][j][k]
-                    self.player_side[m] = self.player_array[i][l].side
-                    l += 1
-                    m += 1
-class Setup_Player_Graph(Setup_Player_Rank):
-    def __init__(self, **kwargs):
-        Setup_Player_Rank.__init__(self, **kwargs)
-        self.set_subordinates()
-        if self.log:
-            print(f"Finished setting subordinates: {time.time()-self.start}")
-    def set_subordinates(self):
-        for i in range(self.sides):
-            for m in range(self.num_types):
-                try:
-                    ranks = np.arange(start= self.player_ranks[i][m][0], stop = 1, step = -1)#All the ranks in the reverse order
-                except Exception as e:
-                    if self.log:
-                        print(f"{e}. ranks shape: {ranks.shape}. ranks: {ranks}")
-                #Does not include the rank of 1 as the lowest level does not have subordinates
-                for rank in ranks:
-                    same_rank = np.where(self.player_ranks[i][m] == rank)[0]
-                    #the indices of players with the given rank in player_rank[i]
-                    lower_rank = np.where(self.player_ranks[i][m] == rank-1)[0]
-
-                    same_rank_size = len(same_rank)
-                    lower_rank_size = len(lower_rank)
-
-                    #The highest aptitude in the same rank has the most number of subordinates if there are remainders
-                    sub_num = lower_rank_size//same_rank_size
-                    #The number of subordinates when not considering the remainder
-                    sub_rem = lower_rank_size % same_rank_size
-                    #the remainder
-
-                    #The higher the aptitude, the higher the quality of troops as well
-                    #the highest gets the highest number of troops as well
-                    current_j = 0
-                    for k in range(0, same_rank_size):#0 already done above
-                        if sub_rem > 0:
-                            self.player_type_array[i][m][same_rank[k]].sub_ids = [self.player_type_array[i][m][lower_rank[j]].id for j in range(current_j, current_j + sub_num+1)]
-                            self.player_type_array[i][m][same_rank[k]].sub_js = [lower_rank[j] for j in range(current_j, current_j + sub_num+1)]
-                            current_j += (sub_num+1)
-                            sub_rem -= 1
-                        else:
-                            self.player_type_array[i][m][same_rank[k]].sub_ids = [self.player_type_array[i][m][lower_rank[j]].id for j in range(current_j, current_j + sub_num)]
-                            self.player_type_array[i][m][same_rank[k]].sub_js = [lower_rank[j] for j in range(current_j, current_j + sub_num)]
-                            current_j += sub_num
-                    for k in range(same_rank_size):
-                        for j in self.player_type_array[i][m][same_rank[k]].sub_js:
-                            self.player_type_array[i][m][j].superior_id = self.player_type_array[i][m][same_rank[k]].id
-                            self.player_type_array[i][m][j].superior_j = same_rank[k]
-            unused_k = np.arange(self.players_per_side[i])
-            used_indices = []
-
-            for m in range(self.num_types):
-                for k in range(len(unused_k)):
-                    player = self.player_array[i][unused_k[k]]
-                    try:
-                        index = np.where(player.id == self.player_type_ids[i][m])[0]
-                        if len(index) == 0:
-                            k+=1
-                            continue
-                        used_indices.append(k)
-                        index = index[0]
-                        sub_ids = self.player_type_array[i][m][index].sub_ids
-                        superior_id = self.player_type_array[i][m][index].superior_id
-                        self.player_array[i][unused_k[k]].sub_ids = sub_ids
-                        self.player_array[i][unused_k[k]].sub_js = self.player_type_array[i][m][index].sub_js
-                        self.player_array[i][unused_k[k]].superior_id = superior_id
-                        self.player_array[i][unused_k[k]].superior_j = self.player_type_array[i][m][index].superior_j
-                        self.player_array[i][unused_k[k]].web = (sub_ids if sub_ids != None else []) + ([superior_id] if superior_id != None else [])
-                    except Exception as e:
-                        if self.log:
-                            print(f"{e}, i: {i}, k: {k}, m: {m}, index: {index}, id: {player.id}")
-                used_indices = np.asarray(used_indices, dtype=np.uint8)
-                while len(used_indices) > 0:
-                    index = used_indices[0]
-                    used_indices = used_indices[1:]
-                    unused_k = np.concatenate([unused_k[:index], unused_k[index+1:]], axis=0)
-                    if len(used_indices) > 0:
-                        used_indices -= 1
-                used_indices = []
 class Set_Board(Setup_Player_Graph):
     def __init__(self, **kwargs):
         Setup_Player_Graph.__init__(self,**kwargs)

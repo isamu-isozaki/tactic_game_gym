@@ -109,8 +109,8 @@ class Generate_Players(Set_Stats):
         self.player_array = []
         
         assert self.archer_prop + self.cavarly_prop + self.infantry_prop + self.wall_prop== 1
-        probs = [self.archer_prop, self.cavarly_prop, self.infantry_prop, self.wall_prop]
-        thresholds = [np.sum(probs[:i+1]) for i in range(len(probs))]
+        self.class_probs = [self.archer_prop, self.cavarly_prop, self.infantry_prop, self.wall_prop]
+        self.class_thresholds = [np.sum(self.class_probs[:i+1]) for i in range(self.num_types)]
         classes = [Archer, Cavarly, Infantry, Wall]
         player_id = 0
         for i in range(self.sides):
@@ -118,7 +118,7 @@ class Generate_Players(Set_Stats):
             for j in range(len(self.stats[0][i])):
                 player = None
                 random_val = random.random()
-                for k, threshold in enumerate(thresholds):
+                for k, threshold in enumerate(self.class_thresholds):
                     if random_val < threshold:
                         army.append(classes[k](self.stats[0][i][j], self.stats[1][i][j], self.stats[2][i][j], player_id, i, **self.kwargs))
                         player_id += 1
@@ -156,14 +156,17 @@ class Post_Player_Setup(Generate_Players):
 class Set_Player_Locs(Post_Player_Setup):
     def __init__(self, **kwargs):
         Post_Player_Setup.__init__(self, **kwargs)
+        player_type_order = [3, 2, 0, 1]
+        #"walls", "infantry", "archer", "cavarly"
+        
         try:
             board_width = self.board_size[0]
             board_height = self.board_size[1]
             if self.rotation:
                 board_width = self.board_size[1]
                 board_height = self.board_size[0]
-            width = (board_width)// self.sides
-            for i in range(self.sides):
+            width = (board_width)// (self.sides*self.num_types)
+            for i in range(self.sides*self.num_types):
                 p_density = self.population_map[i*width: (i+1)*width, :].copy()
                 if self.rotation:
                     p_density = self.population_map[:, i*width: (i+1)*width].copy()
@@ -173,29 +176,27 @@ class Set_Player_Locs(Post_Player_Setup):
                 used = np.zeros(p_density.shape[0], dtype=np.uint8)
                 #The number of players is self.players_per_side[i]
                 k = 0
-                for j in range(self.players_per_side[i]):#first index is player, next is location
-                    while used[k] == 1 or (locations[k]+1) % board_height == 0 or locations[k] % board_height == 0 or locations[k] // board_height == 0:#Stops players from occupying corners
-                        used[k] = 1
-                        k+=1
-                    used[k] = 1
+                #assume only 2 players
+                if i < self.num_types:
+                    current_type = player_type_order[::-1][i]
+                else:
+                    current_type = player_type_order[i % self.num_types]
+
+                for j in range(self.players_per_side[i//self.num_types]):#first index is player, next is location
+                    if self.player_array[i//self.num_types][j].type != current_type:
+                        continue
+                    k += 1
                     location = np.asarray([width*i + locations[k] // board_height, locations[k] % board_height], dtype=np.float16)
 
                     if self.rotation:
                         location = np.asarray([locations[k] % board_height, width*i + locations[k] // board_height], dtype=np.float16)
-
-                    used[np.where(locations == locations[k] + board_height)] = 1
-                    used[np.where(locations == locations[k] + board_height+1)] = 1
-                    used[np.where(locations == locations[k] + board_height-1)] = 1
-                    used[np.where(locations == locations[k] - board_height)] = 1
-                    used[np.where(locations == locations[k] - board_height+1)] = 1
-                    used[np.where(locations == locations[k] - board_height-1)] = 1
-                    used[np.where(locations == locations[k] +1)] = 1
-                    used[np.where(locations == locations[k] -1)] = 1
-                    self.player_array[i][j].position = location
+                    self.player_array[i//self.num_types][j].set_position(location)
                     #Thus each player will be set in a unique location
         except Exception as e:
             if self.log:
                 print(f"{e}")
+                import traceback
+                print(traceback.format_exc())
             self.__init__(**self.kwargs)
         if self.log:
             if self.log:
