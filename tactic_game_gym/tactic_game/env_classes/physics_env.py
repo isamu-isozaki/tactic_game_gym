@@ -58,5 +58,8 @@ class Setup_Rotate_Force(Setup_Swarm_Intelligence, Setup_Springs):
                 print(f"{e}. force angles: {force_angles}, force: {force}")
         cos_weight = -force_3d_unit[2]
         cos_weight *= player.mass*self.g
-        force_3d = force_3d_unit*(force_mag+cos_weight)
+        try:
+            force_3d = force_3d_unit*(force_mag+cos_weight)
+        except Exception as e:
+            print(f"{e}. force_3d_unit: {force_3d_unit}. force_mag: {force_mag}. cos_weight: {cos_weight}")
         return force_3d[:2]
