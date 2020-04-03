@@ -65,7 +65,7 @@ class Gym_Env(Playable_Game):
         self.arrow_output = np.zeros_like(self.render_output, dtype=np.float16)
         #self.screen.blit(self.surf, (0,0))
         #draw_width = self.draw_width
-        colors = get_n_colors(self.sides)
+        colors = self.get_n_colors(self.sides*self.num_types)
         for i in range(self.sides):
             for i2 in range(self.sides):
                 for j in range(self.players_per_side[i2]):
@@ -79,10 +79,10 @@ class Gym_Env(Playable_Game):
                         y += x
                         x = self.switch_to_pymunk(x)
                         y = self.switch_to_pymunk(y)
-                        cv2.circle(self.render_output[i], tuple(self.switch_to_pymunk([int(player.position[0]), int(player.position[1])])), int(player.radius) if int(player.radius) > 0 else 1, tuple([int(m) for m in colors[i2]]))
-                        cv2.line(self.render_output[i], tuple([int(x[0]), int(x[1])]), tuple([int(y[0]), int(y[1])]), tuple([int(m) for m in colors[i2]]))
+                        cv2.circle(self.render_output[i], tuple(self.switch_to_pymunk([int(player.position[0]), int(player.position[1])])), int(player.radius) if int(player.radius) > 0 else 1, player.color[:3])
+                        cv2.line(self.render_output[i], tuple([int(x[0]), int(x[1])]), tuple([int(y[0]), int(y[1])]), player.color[:3])
                     except Exception as e:
-                        print(f"{e}. color: {color}. position: {player.position}, radius: {player.radius}, alive: {player.alive}")
+                        print(f"{e}. color: {player.color}. position: {player.position}, radius: {player.radius}, alive: {player.alive}")
                         import traceback
 
                         print(traceback.format_exc())
@@ -90,14 +90,15 @@ class Gym_Env(Playable_Game):
             size = self.act_board_size//self.stage
             for a0 in range(0,self.stage):
                 for a1 in range(0,self.stage):
-                    arrow = self.action[i, a0*size, a1*size].copy()
-                    arrow *= arrow_size
-                    x=a0*2+1
-                    y=a1*2+1
-                    start = self.switch_to_pymunk([int(x*arrow_size), int(y*arrow_size)])
-                    end = self.switch_to_pymunk([int(x*arrow_size+arrow[0]), int(y*arrow_size+arrow[1])])
+                    for player_type in range(self.num_types):
+                        arrow = self.action[i, a0*size, a1*size, player_type].copy()
+                        arrow *= arrow_size
+                        x=a0*2+1
+                        y=a1*2+1
+                        start = self.switch_to_pymunk([int(x*arrow_size), int(y*arrow_size)])
+                        end = self.switch_to_pymunk([int(x*arrow_size+arrow[0]), int(y*arrow_size+arrow[1])])
 
-                    cv2.arrowedLine(self.arrow_output[i], tuple(start), tuple(end), (255, 255, 255))
+                        cv2.arrowedLine(self.arrow_output[i], tuple(start), tuple(end), colors[i*self.num_types+player_type])
         self.render_output = np.concatenate([self.render_output, self.arrow_output], axis=1)
         return [self.render_output]
 

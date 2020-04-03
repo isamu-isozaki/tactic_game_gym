@@ -104,6 +104,7 @@ def game_args_parser():
 	parser.add_argument('--test_env', default=False, action='store_true', help='Test if environment is running properly')
 	parser.add_argument('--test_mobilize', default=False, action='store_true', help='Test if mobilization is running properly')
 	parser.add_argument('--use_base_dir',default=True, action='store_false', help='Use the current base directory')
+	parser.add_argument('--use_arrow',default=False, action='store_true', help='Use arrow when displaying render')
 	parser.add_argument('--use_boid',default=False, action='store_true', help='Use boids for gathering the players together')
 	parser.add_argument('--use_spring',default=False, action='store_true', help='Use spring for gathering the players together')
 	parser.add_argument('--vec_mag_div_constant_frac', type=float, default=1, help='The proportion of the board_size to divide the arrow magnitude by')
