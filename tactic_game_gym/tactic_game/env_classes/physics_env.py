@@ -62,5 +62,5 @@ class Setup_Rotate_Force(Setup_Swarm_Intelligence, Setup_Springs):
             try:
                 force_3d = force_3d_unit*(force_mag+cos_weight)
             except Exception as e:
-                print(f"{e}. force_3d_unit: {force_3d_unit}. force_mag: {force_mag}. cos_weight: {cos_weight}")
+                print(f"{e}. force_3d_unit: {force_3d_unit}. force: {force}, force_mag: {force_mag}. cos_weight: {cos_weight}")
         return force_3d[:2]
