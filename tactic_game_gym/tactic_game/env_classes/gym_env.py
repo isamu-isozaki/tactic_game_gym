@@ -87,19 +87,22 @@ class Gym_Env(Playable_Game):
                         import traceback
 
                         print(traceback.format_exc())
-            arrow_size = self.board_size[0]/(self.stage*2)
-            size = self.act_board_size//self.stage
-            for a0 in range(0,self.stage):
-                for a1 in range(0,self.stage):
-                    for player_type in range(self.num_types):
-                        arrow = self.action[i, a0*size, a1*size, player_type].copy()
-                        arrow *= arrow_size
-                        x=a0*2+1
-                        y=a1*2+1
-                        start = self.switch_to_pymunk([int(x*arrow_size), int(y*arrow_size)])
-                        end = self.switch_to_pymunk([int(x*arrow_size+arrow[0]), int(y*arrow_size+arrow[1])])
-                        cv2.arrowedLine(self.arrow_output[i], tuple(start), tuple(end), colors[i*self.num_types+player_type].astype(np.float32))
-        self.render_output = np.concatenate([self.render_output, self.arrow_output], axis=1)
+            if self.use_arrow:
+                #Buggy code. Fix later. For now, disabled
+                arrow_size = self.board_size[0]/(self.stage*2)
+                size = self.act_board_size//self.stage
+                for a0 in range(0,self.stage):
+                    for a1 in range(0,self.stage):
+                        for player_type in range(self.num_types):
+                            arrow = self.action[i, a0*size, a1*size, player_type].copy()
+                            arrow *= arrow_size
+                            x=a0*2+1
+                            y=a1*2+1
+                            start = self.switch_to_pymunk([int(x*arrow_size), int(y*arrow_size)])
+                            end = self.switch_to_pymunk([int(x*arrow_size+arrow[0]), int(y*arrow_size+arrow[1])])
+                            cv2.arrowedLine(self.arrow_output[i], tuple(start), tuple(end), colors[i*self.num_types+player_type].astype(np.float32))
+        if self.use_arrow:
+            self.render_output = np.concatenate([self.render_output, self.arrow_output], axis=1)
         return [self.render_output]
 
     def end(self):
