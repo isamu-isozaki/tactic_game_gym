@@ -31,7 +31,7 @@ class Setup_Swarm_Intelligence(Get_Sight):
                         #    apply_mag[player.id] = False
                         #    offset = [0, 0]
                     
-                        self.cohesion_dest[player.id] = offset*self.cohesion_force_prop/self.board_size[0] -player.velocity*self.boid_damping_factor
+                        self.cohesion_dest[player.id] = player.force_prop*(offset*self.cohesion_force_prop/self.board_size[0] -player.velocity*self.boid_damping_factor)
                         if np.isnan(self.cohesion_dest[player.id][0]):
                             raise Exception(f"Got NaN, offset: {offset}, player web pos: {self.board_sight[player.web, :2]}")
                     except Exception as e:

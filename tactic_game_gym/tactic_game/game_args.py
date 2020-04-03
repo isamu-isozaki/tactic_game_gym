@@ -28,7 +28,7 @@ def game_args_parser():
 	parser.add_argument('--attack_div_frac', default=0.5, type=float, help='The proportion of the maximum attack to normalize for')
 	parser.add_argument('--attrange_div_const', type=float, default=1.0, help='The proportion of max_speed by which to divide velocity magnitude by')
 	parser.add_argument('--base_vision', type=float, default=10, help='Mean of base vision.')#This is the same as attack range
-	parser.add_argument('--boid_damping_factor', type=float, default=0.25, help='The coefficient of velocity used for damping for boid')
+	parser.add_argument('--boid_damping_factor', type=float, default=0.1, help='The coefficient of velocity used for damping for boid')
 	parser.add_argument('--board_size', type=int, default=257, help='The number of sides in the war. Due to diamond square algorithm, must be in the form of 2^n+1')
 	parser.add_argument('--cap_prop', type=float, default=0.2, help='The propotion of the std of the normal distribution for capabilities(hp, strengt)')
 	parser.add_argument('--cavarly_base_vision', type=float, default=10, help='The attack range of cavarly')
@@ -49,7 +49,7 @@ def game_args_parser():
 	parser.add_argument('--ended_moves', default=0, type=int, help='The number of moves where training ended')
 	parser.add_argument('--full_view', default=False, action='store_true', help='Whether to see the whole view or not')
 	parser.add_argument('--g', type=float, default=0., help='The gravitational constant')
-	parser.add_argument('--game_timestep', type=float, default=.2, help='The time step between each step')
+	parser.add_argument('--game_timestep', type=float, default=.4, help='The time step between each step')
 	parser.add_argument('--hp', type=float, default=10, help='The mean HP of player')
 	parser.add_argument('--infantry_base_vision', type=float, default=10., help='The attack range of infantry.')
 	parser.add_argument('--infantry_density', type=float, default=1., help='The mass density of infantry.')
