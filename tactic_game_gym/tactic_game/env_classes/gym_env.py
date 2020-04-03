@@ -1,6 +1,7 @@
 from tactic_game_gym.tactic_game.env_classes.game_utility import Playable_Game
 from tactic_game_gym.tactic_game.utility import get_n_colors
 import numpy as np
+import cv2
 
 class Gym_Env(Playable_Game):
     def __init__(self, **kwargs):
@@ -97,8 +98,7 @@ class Gym_Env(Playable_Game):
                         y=a1*2+1
                         start = self.switch_to_pymunk([int(x*arrow_size), int(y*arrow_size)])
                         end = self.switch_to_pymunk([int(x*arrow_size+arrow[0]), int(y*arrow_size+arrow[1])])
-
-                        cv2.arrowedLine(self.arrow_output[i], tuple(start), tuple(end), colors[i*self.num_types+player_type])
+                        cv2.arrowedLine(self.arrow_output[i], tuple(start), tuple(end), colors[i*self.num_types+player_type].astype(np.float32))
         self.render_output = np.concatenate([self.render_output, self.arrow_output], axis=1)
         return [self.render_output]
 
