@@ -65,7 +65,7 @@ class Gym_Env(Playable_Game):
         self.arrow_output = np.zeros_like(self.render_output, dtype=np.float16)
         #self.screen.blit(self.surf, (0,0))
         #draw_width = self.draw_width
-        colors = self.get_n_colors(self.sides*self.num_types)
+        colors = get_n_colors(self.sides*self.num_types)
         for i in range(self.sides):
             for i2 in range(self.sides):
                 for j in range(self.players_per_side[i2]):
