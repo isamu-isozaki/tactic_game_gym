@@ -116,6 +116,7 @@ class Generate_Players(Set_Stats):
         self.class_thresholds = [np.sum(self.class_probs[:i+1]) for i in range(self.num_types)]
         classes = [Archer, Cavarly, Infantry, Wall]
         player_id = 0
+        self.wall_num = [0 for _ in range(self.sides)]
         for i in range(self.sides):
             army = []
             for j in range(len(self.stats[0][i])):
@@ -123,6 +124,8 @@ class Generate_Players(Set_Stats):
                 random_val = random.random()
                 for k, threshold in enumerate(self.class_thresholds):
                     if random_val < threshold:
+                        if k == 3:
+                            self.wall_num[i] += 1
                         army.append(classes[k](self.stats[0][i][j], self.stats[1][i][j], self.stats[2][i][j], player_id, i, **self.kwargs))
                         player_id += 1
                         break

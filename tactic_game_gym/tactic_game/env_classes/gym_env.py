@@ -111,6 +111,6 @@ class Gym_Env(Playable_Game):
         if np.sum(self.remaining_players) < np.sum(self.players_per_side)*self.min_frac or np.max(self.remaining_players) == np.sum(self.remaining_players):#If the total number is half,
             return True
         for i in range(self.sides):
-            if self.remaining_players[i] < self.min_players:
+            if self.remaining_players[i]-self.wall_nums[i] < self.min_players:
                 return True
         return False
