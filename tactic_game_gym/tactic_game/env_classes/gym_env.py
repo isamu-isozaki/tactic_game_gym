@@ -81,7 +81,7 @@ class Gym_Env(Playable_Game):
                         x = self.switch_to_pymunk(x)
                         y = self.switch_to_pymunk(y)
                         cv2.circle(self.render_output[i], tuple(self.switch_to_pymunk([int(player.position[0]), int(player.position[1])])), int(player.radius) if int(player.radius) > 0 else 1, (int(player.color[0]), int(player.color[1]), int(player.color[2])))
-                        cv2.line(self.render_output[i], tuple([int(x[0]), int(x[1])]), tuple([int(y[0]), int(y[1])]), (int(m) for m in player.color[:3]))
+                        cv2.line(self.render_output[i], tuple([int(x[0]), int(x[1])]), tuple([int(y[0]), int(y[1])]), (int(player.color[0]), int(player.color[1]), int(player.color[2])))
                     except Exception as e:
                         print(f"{e}. color: {player.color}. position: {player.position}, radius: {player.radius}, alive: {player.alive}")
                         import traceback
