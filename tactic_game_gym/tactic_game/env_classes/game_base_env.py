@@ -65,11 +65,11 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
                 body = pymunk.Body(mass, moment)
                 body.position = self.player_array[i][j].position[0], self.player_array[i][j].position[1]
                 shape = pymunk.Circle(body, radius)
-                mask = pymunk.ShapeFilter.ALL_MASKS
-                for k in range(self.num_types):
-                    if k != player.type:
-                        mask = mask ^ (i*self.num_types + k)
-                shape.filter = pymunk.ShapeFilter(categories=i*self.num_types+player.type, mask=mask)
+                # mask = pymunk.ShapeFilter.ALL_MASKS
+                # for k in range(self.num_types):
+                #     if k != player.type:
+                #         mask = mask ^ (i*self.num_types + k)
+                # shape.filter = pymunk.ShapeFilter(categories=i*self.num_types+player.type, mask=mask)
                 shape.color = (*colors[i*self.num_types+player.type], 255)
                 self.player_array[i][j].color = (*colors[i*self.num_types+player.type], 255)
                 self.space.add(body, shape)
