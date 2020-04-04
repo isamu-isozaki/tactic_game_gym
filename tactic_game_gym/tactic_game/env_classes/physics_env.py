@@ -42,7 +42,7 @@ class Setup_Rotate_Force(Setup_Swarm_Intelligence, Setup_Springs):
         position = position.tolist()
         force_mag = 0
         if force[0] != 0 or force[1] != 0:
-            force_mag = np.linalg.norm(force/player.player_force)*player.player_force
+            force_mag = np.linalg.norm(force/1000)*1000
         force_angles = None
         if force_mag == 0:
             force_angles = np.ones([2])/np.sqrt(2)
