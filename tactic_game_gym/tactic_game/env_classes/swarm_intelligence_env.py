@@ -23,7 +23,8 @@ class Setup_Swarm_Intelligence(Get_Sight):
             for j in range(self.players_per_side[i]):
                 player = self.player_array[i][j]
                 if player.alive:
-                    assert player.web != []
+                    if player.web == []:
+                        continue
                     try:
                         offset = np.mean(self.board_sight[player.web, :2], axis=0)
                         offset -= player.position
