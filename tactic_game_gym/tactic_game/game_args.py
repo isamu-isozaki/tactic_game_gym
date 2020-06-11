@@ -58,7 +58,7 @@ def game_args_parser():
 	parser.add_argument('--infantry_hp', type=float, default=1, help='How much more hp cavarly has than the infantry. This is to account for their larger size.')
 	parser.add_argument('--infantry_k', type=float, default=1, help='The multiplier to the spring coefficient for cavarly')
 	parser.add_argument('--infantry_max_speed', type=float, default=1, help='How much more larger the max speed of the cavarly is')
-	parser.add_argument('--infantry_prop', type=float, default=0.5, help='The proportion of cavarly in troops.')
+	parser.add_argument('--infantry_prop', type=float, default=0.4, help='The proportion of cavarly in troops.')
 	parser.add_argument('--infantry_scale', type=float, default=1, help='How much larger the radius of the cavarly is than the infantry')
 	parser.add_argument('--init_stage', default=1, type=int, help='The initial stage of action stage')
 	parser.add_argument('--is_train', default=False, action='store_true', help='Is training')
@@ -117,6 +117,6 @@ def game_args_parser():
 	parser.add_argument('--wall_hp', type=float, default=10, help='How much more hp cavarly has than the infantry. This is to account for their larger size.')
 	parser.add_argument('--wall_k', type=float, default=80, help='The multiplier to the spring coefficient for cavarly')
 	parser.add_argument('--wall_max_speed', type=float, default=0.5, help='How much more larger the max speed of the cavarly is')
-	parser.add_argument('--wall_prop', type=float, default=0.05, help='The proportion of cavarly in troops.')
+	parser.add_argument('--wall_prop', type=float, default=0.15, help='The proportion of cavarly in troops.')
 	parser.add_argument('--wall_scale', type=float, default=2, help='How much larger the radius of the cavarly is than the infantry')
 	return parser
