@@ -28,6 +28,7 @@ class Setup_Swarm_Intelligence(Get_Sight):
                     try:
                         offset = np.mean(self.board_sight[player.web, :2], axis=0)
                         offset -= player.position
+                        
                         #if (np.sum(offset)+epsilon) < (2*player.r_a+epsilon):
                         #    apply_mag[player.id] = False
                         #    offset = [0, 0]
