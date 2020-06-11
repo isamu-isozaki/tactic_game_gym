@@ -199,6 +199,7 @@ class Attack(Mobilize):
         total_death = np.sum(self.dead)
         for i in range(self.sides):
             self.rewards[i] = total_death - 2*self.dead[i]#how many more died then your side
+            self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if self.player_array[i][j].alive and self.player_array[i][j].id in alive:
@@ -270,6 +271,24 @@ class Playable_Game(Attack):
                             self.interact_side %= self.sides
                             if self.log:
                                 print(f"Changed side to {self.interact_side}")
+                    elif event.type == pygame.KEYDOWN:
+                        player_types = ["archer", "cavarly", "infantry", "wall"]
+                        if event.key == pygame.K_0:
+                            self.interact_type = 0
+                            if self.log:
+                                print(f"Changed type to {player_types[self.interact_type]}")
+                        elif event.key == pygame.K_1:
+                            self.interact_type = 1
+                            if self.log:
+                                print(f"Changed type to {player_types[self.interact_type]}")
+                        elif event.key == pygame.K_2:
+                            self.interact_type = 2
+                            if self.log:
+                                print(f"Changed type to {player_types[self.interact_type]}")
+                        elif event.key == pygame.K_3:
+                            self.interact_type = 3
+                            if self.log:
+                                print(f"Changed type to {player_types[self.interact_type]}")
                     else:
                         None
 
