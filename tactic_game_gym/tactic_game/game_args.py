@@ -27,7 +27,7 @@ def game_args_parser():
 	The true atomic radius is calculated by r+r_a""")
 	parser.add_argument('--attack_div_frac', default=0.5, type=float, help='The proportion of the maximum attack to normalize for')
 	parser.add_argument('--attrange_div_const', type=float, default=1.0, help='The proportion of max_speed by which to divide velocity magnitude by')
-	parser.add_argument('--base_vision', type=float, default=10, help='Mean of base vision.')#This is the same as attack range
+	parser.add_argument('--base_vision', type=float, default=20, help='Mean of base vision.')#This is the same as attack range
 	parser.add_argument('--boid_damping_factor', type=float, default=0.5, help='The coefficient of velocity used for damping for boid')
 	parser.add_argument('--board_size', type=int, default=257, help='The number of sides in the war. Due to diamond square algorithm, must be in the form of 2^n+1')
 	parser.add_argument('--cap_prop', type=float, default=0.2, help='The propotion of the std of the normal distribution for capabilities(hp, strengt)')
@@ -39,7 +39,8 @@ def game_args_parser():
 	parser.add_argument('--cavarly_max_speed', type=float, default=1.5, help='How much more larger the max speed of the cavarly is')
 	parser.add_argument('--cavarly_prop', type=float, default=0.15, help='The proportion of cavarly in troops.')
 	parser.add_argument('--cavarly_scale', type=float, default=1.2, help='How much larger the radius of the cavarly is than the infantry')
-	parser.add_argument('--cohesion_force_prop', type=float, default=12.0, help='The force that makes the players move in the same direction')
+	parser.add_argument('--cohesion_damping', type=float, default=50.0, help='The fraction to multiply offset by')
+	parser.add_argument('--cohesion_force_prop', type=float, default=24.0, help='The force that makes the players move in the same direction')
 	parser.add_argument('--cohesion_force_prop_after_damping', type=float, default=3.0, help='The coefficient to apply after applying damping')
 	parser.add_argument('--continue_penalty', type=float, default=-0.003, help='The penalty for prolonging the game this is deducted from energy bar')
 	parser.add_argument('--death_penalty', type=float, default=-0.5, help='The penalty for death per player')
@@ -112,7 +113,7 @@ def game_args_parser():
 	parser.add_argument('--vec_mag_div_constant_frac', type=float, default=1, help='The proportion of the board_size to divide the arrow magnitude by')
 	parser.add_argument('--vec_steps', type=int, default=10, help='The number of steps/resolution of each vector\'s area of effect')
 	parser.add_argument('--vec_width_diff', type=int, default=15, help='The amount by which the vec width changes when pressing up and down on the arrow keys')
-	parser.add_argument('--wall_base_vision', type=float, default=10, help='The base vision of walls')
+	parser.add_argument('--wall_base_vision', type=float, default=40, help='The base vision of walls')
 	parser.add_argument('--wall_density', type=float, default=10, help='The density of walls')
 	parser.add_argument('--wall_force', type=float, default=10, help='How much more force cavarly has than the infantry. This is to account for their larger mass.')
 	parser.add_argument('--wall_hp', type=float, default=10, help='How much more hp wall has than the infantry. This is to account for their larger size.')
