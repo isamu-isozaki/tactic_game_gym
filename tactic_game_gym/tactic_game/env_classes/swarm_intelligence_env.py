@@ -19,6 +19,8 @@ class Setup_Swarm_Intelligence(Get_Sight):
         self.cohesion_dest[:] = 0
         self.cohesion_mags[:] = 0
         apply_mag = living.copy()
+        damping_constant = self.cohesion_damping
+        #coef = []
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 player = self.player_array[i][j]
@@ -32,12 +34,15 @@ class Setup_Swarm_Intelligence(Get_Sight):
                         #if (np.sum(offset)+epsilon) < (2*player.r_a+epsilon):
                         #    apply_mag[player.id] = False
                         #    offset = [0, 0]
-                    
-                        self.cohesion_dest[player.id] = player.force_prop*(offset*self.cohesion_force_prop/self.board_size[0] -player.velocity*self.boid_damping_factor)
-                        if np.isnan(self.cohesion_dest[player.id][0]):
+                        #coef.append(np.dot(offset/damping_constant, offset/damping_constant))
+                        offset_dot_product = np.dot(offset/(damping_constant), offset/(damping_constant))
+                        distance_factor = offset_dot_product if offset_dot_product > 1 else 1
+                        self.cohesion_dest[player.id] = player.force_prop*(offset*self.cohesion_force_prop/self.board_size[0]*distance_factor -player.velocity*self.boid_damping_factor)
+                        if np.isnan(self.cohesion_dest[player.id][0]) or np.isnan(self.cohesion_dest[player.id][1]):
                             raise Exception(f"Got NaN, offset: {offset}, player web pos: {self.board_sight[player.web, :2]}")
                     except Exception as e:
                         print(f"{e}. velocity: {player.velocity} player web: {player.web}")
+
         return self.cohesion_dest[living]
 
 
