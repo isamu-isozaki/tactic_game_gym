@@ -201,7 +201,7 @@ class Attack(Mobilize):
         total_death = np.sum(self.dead)
         for i in range(self.sides):
             self.rewards[i] = total_death - 2*self.dead[i]#how many more died then your side
-            self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
+            #self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if self.player_array[i][j].alive and self.player_array[i][j].id in alive:
