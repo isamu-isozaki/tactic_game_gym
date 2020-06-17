@@ -6,7 +6,7 @@ import cv2
 class Gym_Env(Playable_Game):
     def __init__(self, **kwargs):
         Playable_Game.__init__(self, **kwargs)
-    def update_step(self):
+    def update_step(self, hard_code_rate=1.):
         self.game_step()
         self.reset_web()
         self.set_board()
@@ -18,15 +18,29 @@ class Gym_Env(Playable_Game):
         self.finished_sides[...] = 0
         self.get_sight()
         dones = [done for _ in range(self.sides)]
-        infos = [{} for _ in range(self.sides)]
+        if done:
+            self.remaining_players = np.array(self.remaining_players)
+            winning_side = np.where(self.remaining_players == self.remaining_players.max())
+            for i in range(self.sides):
+                if i==winning_side:
+                    self.rewards[winning_side] += self.win_reward#Currently winning is worth eliminating 100 more agents
+                else:
+                    self.rewards[i] -= self.win_reward
         if self.is_train:
             if (self.stage != self.act_board_size) and ((self.total_moves+1) % self.stage_update_num == 0):
                 if self.log:
                     print(f"stage is {self.stage}")
                 self.stage *= 2
             self.total_moves += 1
+        # print(f"update step: self.obs: {self.obs.mean()} self.rewards: {self.rewards.mean()} dead players: {self.dead} damage sides: {self.damage_sides} seen: {self.seen}")
+        self.rewards += hard_code_rate*(self.hard_coded_rewards["death_offset"] + self.damage_reward_frac*self.hard_coded_rewards["damage"]+self.seen_reward_frac*self.hard_coded_rewards["seen"])
+        rewards = {"r": self.rewards}
+        rewards.update(self.hard_coded_rewards)
+        infos = [{"episode": {key: rewards[key][i] for key in rewards}} for i in range(self.sides)]
+        for i in range(self.sides):
+            infos[i]["episode"]["hard_code_rate"] = hard_code_rate
         return self.obs, self.rewards, dones, infos
-    def step(self, action):
+    def step(self, action=None, hard_code_rate=1.):
         if not self.started:
             self.start_game()
         side = self.side
@@ -52,7 +66,7 @@ class Gym_Env(Playable_Game):
         self.side += 1
         self.side %= self.sides
         if self.finished_sides[self.finished_sides == 0].shape[0] == 0:
-            return self.update_step()
+            return self.update_step(hard_code_rate)
         return None, None, None, None
     def reset(self):
         self.__init__(**self.kwargs)

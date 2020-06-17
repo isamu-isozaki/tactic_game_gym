@@ -160,6 +160,9 @@ class Attack(Mobilize):
         self.attacked[...] = 0
         self.attacked_dist[...] = 0
         self.can_see[...] = 0
+        self.hard_coded_rewards['death_offset'][...] = 0
+        self.hard_coded_rewards['damage'][...] = 0
+        self.hard_coded_rewards['seen'][...] = 0
         self.dead[...] = 0
         self.rewards[...] = 0#make it so that one dies
         k = -1
@@ -193,14 +196,22 @@ class Attack(Mobilize):
             for j in range(self.players_per_side[i]):
                 if not self.player_array[i][j].alive:
                     continue
+                player_hp = self.player_array[i][j].hp
                 player_alive = self.player_array[i][j].damage(self.attacked[i][k]+self.continue_penalty)
+                self.hard_coded_rewards['damage'][i] += np.min([self.attacked[i][k], player_hp])
+                self.hard_coded_rewards['seen'][i] += 1 if self.attacked[i][k] > 0 else 0
                 if not player_alive:
                     self.dead[i] += 1
                     self.remaining_players[i] -= 1
                 k += 1
         total_death = np.sum(self.dead)
+        total_damage = np.sum(self.hard_coded_rewards['damage'])
+        total_seen = np.sum(self.hard_coded_rewards['seen'])
         for i in range(self.sides):
-            self.rewards[i] = total_death - 2*self.dead[i]#how many more died then your side
+            self.hard_coded_rewards['death_offset'][i] = total_death - 2*self.dead[i]#how many more died then your side
+            self.hard_coded_rewards['damage'][i] = total_damage - 2*self.hard_coded_rewards['damage'][i]#how much more damage occured on your side
+            self.hard_coded_rewards['seen'][i] = total_seen - 2*self.hard_coded_rewards['seen'][i]#how many more were seen on your side
+            #Overall, becomes a zero sum game
             #self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
@@ -209,7 +220,6 @@ class Attack(Mobilize):
         for id in alive:#all dead
             self.space.remove(self.balls[id], self.balls[id].body)
             self.current_balls.remove(self.balls[id])
-
 
         self.set_board()
         self.attack_turn += 1

@@ -29,6 +29,7 @@ class Setup_Var_Init(Map_Env):
         Map_Env.__init__(self, **kwargs)
         self.side = 0
         self.rotation = random.random() < 0.5
+        self.flip = random.random() < 0.5
         self.t = 0
         self.attack_turn = 0
         self.base_directory = os.getcwd()
@@ -64,6 +65,7 @@ class Setup_Var_Init(Map_Env):
             self.obs[i, ...,  0] = cv2.resize(self.map.copy().astype(np.float32), (self.obs_board_size, self.obs_board_size)).astype(np.float16)* 255
         self.dead = np.zeros(self.sides, dtype=np.float16)#the amount that died during the current time step for all sides
         self.rewards = np.zeros(self.sides, dtype=np.float16)#the amount that died for other sides
+        self.hard_coded_rewards = {'death_offset': np.zeros(self.sides, dtype=np.float16), 'damage': np.zeros(self.sides, dtype=np.float16), 'seen': np.zeros(self.sides, dtype=np.float16)}
 
         #Setting up observation and action space
         self.action_space = spaces.Box(low=-1.0, high=1.0, shape=[self.act_board_size*self.act_board_size*self.num_types*2], dtype=np.float32)
@@ -193,9 +195,13 @@ class Set_Player_Locs(Post_Player_Setup):
                         continue
                     k += 1
                     location = np.asarray([width*i + locations[k] // board_height, locations[k] % board_height], dtype=np.float16)
+                    if self.flip:
+                        location[0] = board_width - location[0]
 
                     if self.rotation:
                         location = np.asarray([locations[k] % board_height, width*i + locations[k] // board_height], dtype=np.float16)
+                        if self.flip:
+                            location[1] = board_width - location[1]
                     self.player_array[i//self.num_types][j].set_position(location)
                     #Thus each player will be set in a unique location
         except Exception as e:

@@ -43,6 +43,7 @@ def game_args_parser():
 	parser.add_argument('--cohesion_force_prop', type=float, default=24.0, help='The force that makes the players move in the same direction')
 	parser.add_argument('--cohesion_force_prop_after_damping', type=float, default=3.0, help='The coefficient to apply after applying damping')
 	parser.add_argument('--continue_penalty', type=float, default=-0.003, help='The penalty for prolonging the game this is deducted from energy bar')
+	parser.add_argument('--damage_reward_frac', type=float, default=0.1, help='The coefficient to hard coded reward of damage')
 	parser.add_argument('--death_penalty', type=float, default=-0.5, help='The penalty for death per player')
 	parser.add_argument('--drag_force_prop', type=float, default=4.5, help='The coefficient of the drag force')
 	parser.add_argument('--draw_connections', default=False, action='store_true', help='Whether or not to draw lines for matplotlib')
@@ -93,6 +94,7 @@ def game_args_parser():
 	parser.add_argument('--save_dir', type=str, default="model", help='The save directory where the checkpoint is')
 	parser.add_argument('--save_imgs', default=False, action='store_true', help='Whether or not save images')
 	parser.add_argument('--scale_fac', type=int, default=8, help='Scale down ratio for the board size')
+	parser.add_argument('--seen_reward_frac', type=int, default=0.01, help='The coefficient to hard coded reward for seeing')
 	parser.add_argument('--show', default=False, action='store_true', help='Whether to display the game/whether to use pygame or not')
 	parser.add_argument('--sides', type=int, default=2, help='The number of sides in the war')
 	parser.add_argument('--spring_damping_factor', type=float, default=1, help='The coefficient of velocity used for damping for spring')
@@ -121,4 +123,5 @@ def game_args_parser():
 	parser.add_argument('--wall_max_speed', type=float, default=0.5, help='How much more larger the max speed of the cavarly is')
 	parser.add_argument('--wall_prop', type=float, default=0.15, help='The proportion of cavarly in troops.')
 	parser.add_argument('--wall_scale', type=float, default=2, help='How much larger the radius of the cavarly is than the infantry')
+	parser.add_argument('--win_reward', type=float, default=100, help='The reward for winning the game')
 	return parser
