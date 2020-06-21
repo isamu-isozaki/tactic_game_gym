@@ -33,6 +33,7 @@ class Gym_Env(Playable_Game):
                 self.stage *= 2
             self.total_moves += 1
         # print(f"update step: self.obs: {self.obs.mean()} self.rewards: {self.rewards.mean()} dead players: {self.dead} damage sides: {self.damage_sides} seen: {self.seen}")
+        self.rewards *= (1-hard_code_rate)
         self.rewards += hard_code_rate*(self.hard_coded_rewards["death_offset"] + self.damage_reward_frac*self.hard_coded_rewards["damage"]+self.seen_reward_frac*self.hard_coded_rewards["seen"])
         rewards = {"r": self.rewards}
         rewards.update(self.hard_coded_rewards)

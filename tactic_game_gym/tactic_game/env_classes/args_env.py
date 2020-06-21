@@ -12,4 +12,9 @@ class Args_Env(Base_Env):
         for k,v in self.kwargs.items():
             setattr(self, k, v)
         super(Args_Env, self).__init__()
-
+        # Set proportions accurately
+        total_prop = self.wall_prop+self.infantry_prop+self.archer_prop+self.cavarly_prop
+        self.wall_prop /= total_prop
+        self.infantry_prop /= total_prop
+        self.archer_prop /= total_prop
+        self.cavarly_prop /= total_prop

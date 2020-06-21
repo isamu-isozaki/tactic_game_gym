@@ -164,7 +164,9 @@ class Post_Player_Setup(Generate_Players):
 class Set_Player_Locs(Post_Player_Setup):
     def __init__(self, **kwargs):
         Post_Player_Setup.__init__(self, **kwargs)
-        player_type_order = [3, 2, 0, 1]
+        player_type_order = np.array([3, 2, 0, 1])
+        player_props = np.array([self.wall_prop, self.infantry_prop, self.archer_prop, self.cavarly_prop])
+        player_type_order = player_type_order[player_props != 0]
         #"walls", "infantry", "archer", "cavarly"
         
         try:
@@ -181,7 +183,6 @@ class Set_Player_Locs(Post_Player_Setup):
                 p_density = np.reshape(p_density, [-1])
                 p_density /= p_density.sum()
                 locations = np.random.choice(np.arange(p_density.shape[0]), size=p_density.shape[0], replace=False, p=p_density)
-                used = np.zeros(p_density.shape[0], dtype=np.uint8)
                 #The number of players is self.players_per_side[i]
                 k = 0
                 #assume only 2 players
