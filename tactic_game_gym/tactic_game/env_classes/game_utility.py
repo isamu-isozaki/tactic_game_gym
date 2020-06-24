@@ -98,12 +98,13 @@ class Attack(Mobilize):
     def __init__(self, **kwargs):
         Mobilize.__init__(self, **kwargs)
     def attack(self, epsilon=1e-5):
+        INF = 10**5
         rotation = True
         prop_side = self.prop_side
         positions = self.board_sight[:, :2].copy()
         velocities = self.board_sight[:, 2:4].copy()
         living = self.get_alive_mask() == 1
-        #is_wall = self.player_type_mask == 3#Walls can't attack
+        is_wall = self.player_type_mask == 3#Walls can't attack
         is_archer = self.player_type_mask == 0#Archer's range is higher when staying still
         alive = []
         for i in range(self.sides):
@@ -116,20 +117,22 @@ class Attack(Mobilize):
         velocities = velocities[living]
         num_players = np.sum(self.remaining_players)
         attacked = np.zeros(num_players, dtype=np.float16)
-        cos_sin = (velocities+[epsilon, epsilon]) / (mags[:, None]+epsilon*np.sqrt(2))
+        mags_temp = mags.copy()
+        mags_temp[mags_temp == 0] = 1
+        cos_sin = (velocities) / (mags_temp[:, None])
         rot_matrix = np.concatenate([\
                             np.concatenate([cos_sin[:, 0, None, None],\
                                              cos_sin[:, 1, None, None]], axis = 2),\
                             np.concatenate([cos_sin[:, 1, None, None],\
                                             -cos_sin[:, 0, None, None]], axis = 2)], axis = 1)
         x, y = self.board_sight[living, 0], self.board_sight[living, 1]
-        X = np.reshape(-positions[:, 0, None]+x, [num_players, num_players])#The x coordinate of all other players from each player
+        X = np.reshape(-positions[:, 0, None]+x, [num_players, num_players])
+        #The x coordinate of all other players from each player
         Y = np.reshape(-positions[:, 1, None]+y, [num_players, num_players])
         #X[i], Y[i] is the x and y coordinates of all of the players when the ith player is at (0,0)
         XY = np.concatenate([X[..., None], Y[..., None]], axis = 2)
         attack_range_mags = mags / (self.attrange_div_const*self.max_speed)
         attack_range_mags[is_archer[living]] = 1/self.attrange_div_const - attack_range_mags[is_archer[living]]#The higher the velocity, the lower the range
-        #attack_range_mags[is_wall[living]] = 0
         base_index = 12
         attack_range = self.range_factor*np.einsum("i,i->i",attack_range_mags, self.board_sight[living, base_index])[:, None]#set max value of einsum to 1
         #attack_range = np.ones(num_players) + 10
@@ -137,9 +140,13 @@ class Attack(Mobilize):
         # print(f"Mean attack range: {attack_range.mean()}")
         max_attack_range = np.max(attack_range)
         if rotation:
-            XY_rot = np.einsum("mij,m...j->i...m", rot_matrix, XY)#This step leads to duplicates forming at different locations
+            #rot_matrix has shape [num_players, 2, 2]
+            #XY has shape [num_players, num_players, 2]
+            XY_rot = np.einsum("mij,m...j->i...m", rot_matrix, XY)
+            #XY_rot has shape [2, num_players, num_players]
+            #This step leads to duplicates forming at different locations
             Z = XY_rot.copy()#for debuggin
-            Z[0][Z[0] < 0] = max_attack_range+1
+            Z[0][Z[0] < 0] = INF#If out of range, make sure can't be reached
             XY_rot_abs = np.abs(Z)
             Y_rot_abs_passive = np.abs(XY_rot[1])#quite sure there's a faster way but go with this for now
         else:
@@ -152,6 +159,7 @@ class Attack(Mobilize):
         else:
             X_end = np.reshape(XY_rot_abs[..., 0], [num_players, num_players])
             Y_end = np.reshape(XY_rot_abs[..., 1], [num_players, num_players])
+            Y_end_passive = Y_end
 
         XY_out = X_end + (1/prop_side)*Y_end
         XY_out_passive = X_end+Y_end_passive
@@ -186,10 +194,13 @@ class Attack(Mobilize):
         #if self.log:
         # print(self.attacked)
         self.attacked_dist = self.attacked.copy()
+        #self.attacked contains damaged done from side i on all players
         self.can_see = self.attacked > 0
         #can_see contains all players each side can see
         attacked_sum = np.sum(self.attacked, axis = 0)
+        #
         for i in range(self.sides):
+            # Damage done to side i players from all the other players
             self.attacked[i] = attacked_sum - self.attacked[i]
         k = 0
         for i in range(self.sides):
@@ -204,9 +215,12 @@ class Attack(Mobilize):
                     self.dead[i] += 1
                     self.remaining_players[i] -= 1
                 k += 1
+        print(f"remaining players: {self.remaining_players}")
         total_death = np.sum(self.dead)
         total_damage = np.sum(self.hard_coded_rewards['damage'])
         total_seen = np.sum(self.hard_coded_rewards['seen'])
+        # print(self.hard_coded_rewards)
+
         for i in range(self.sides):
             self.hard_coded_rewards['death_offset'][i] = total_death - 2*self.dead[i]#how many more died then your side
             self.hard_coded_rewards['damage'][i] = total_damage - 2*self.hard_coded_rewards['damage'][i]#how much more damage occured on your side
@@ -286,21 +300,33 @@ class Playable_Game(Attack):
                     elif event.type == pygame.KEYDOWN:
                         player_types = ["archer", "cavarly", "infantry", "wall"]
                         if event.key == pygame.K_0:
-                            self.interact_type = 0
-                            if self.log:
-                                print(f"Changed type to {player_types[self.interact_type]}")
+                            if 0 not in self.type_to_index:
+                                print("Can't change sides to this")
+                            else:
+                                self.interact_type = 0
+                                if self.log:
+                                    print(f"Changed type to {player_types[self.interact_type]}")
                         elif event.key == pygame.K_1:
-                            self.interact_type = 1
-                            if self.log:
-                                print(f"Changed type to {player_types[self.interact_type]}")
+                            if 1 not in self.type_to_index:
+                                print("Can't change sides to this")
+                            else:
+                                self.interact_type = 1
+                                if self.log:
+                                    print(f"Changed type to {player_types[self.interact_type]}")
                         elif event.key == pygame.K_2:
-                            self.interact_type = 2
-                            if self.log:
-                                print(f"Changed type to {player_types[self.interact_type]}")
+                            if 2 not in self.type_to_index:
+                                print("Can't change sides to this")
+                            else:
+                                self.interact_type = 2
+                                if self.log:
+                                    print(f"Changed type to {player_types[self.interact_type]}")
                         elif event.key == pygame.K_3:
-                            self.interact_type = 3
-                            if self.log:
-                                print(f"Changed type to {player_types[self.interact_type]}")
+                            if 3 not in self.type_to_index:
+                                print("Can't change sides to this")
+                            else:
+                                self.interact_type = 3
+                                if self.log:
+                                    print(f"Changed type to {player_types[self.interact_type]}")
                     else:
                         None
 

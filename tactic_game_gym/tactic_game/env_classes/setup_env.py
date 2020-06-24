@@ -46,11 +46,9 @@ class Setup_Var_Init(Map_Env):
         #For playing game
         self.vec_width = self.board_size[0]//self.sides
         self.interact_side = np.random.choice(np.arange(self.sides))
-        self.interact_type = np.random.choice(np.arange(self.num_types))
         if self.log:
             player_types = ["archer", "cavarly", "infantry", "wall"]
             print(f"You are side {self.interact_side}")
-            print("You are ", player_types[self.interact_type])
 
         #numpy arrays below
         self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3], dtype=np.float16)
@@ -114,9 +112,20 @@ class Generate_Players(Set_Stats):
         self.player_array = []
         
         assert self.archer_prop + self.cavarly_prop + self.infantry_prop + self.wall_prop== 1
-        self.class_probs = [self.archer_prop, self.cavarly_prop, self.infantry_prop, self.wall_prop]
+        #Make it so that order to make prop 0 doesn't matter
+        self.class_probs = np.array([self.archer_prop, self.cavarly_prop, self.infantry_prop, self.wall_prop])
+        class_nums = [0, 1, 2, 3]
+        valid_class_mask = self.class_probs != 0
+        self.index_to_type = np.array(class_nums)[valid_class_mask]
+        self.type_to_index = {self.index_to_type[k]: k for k in range(self.num_types)}
+        self.interact_type = self.index_to_type[np.random.choice(np.arange(self.num_types))]
+        if self.log:
+            player_types = ["archer", "cavarly", "infantry", "wall"]
+            print("You are ", player_types[self.interact_type])
+        self.class_probs = self.class_probs[valid_class_mask]
         self.class_thresholds = [np.sum(self.class_probs[:i+1]) for i in range(self.num_types)]
-        classes = [Archer, Cavarly, Infantry, Wall]
+        classes = np.array([Archer, Cavarly, Infantry, Wall])
+        classes = classes[valid_class_mask]
         player_id = 0
         self.wall_nums = [0 for _ in range(self.sides)]
         for i in range(self.sides):
@@ -132,19 +141,17 @@ class Generate_Players(Set_Stats):
                         player_id += 1
                         break
             self.player_array.append(army)
-
         self.remaining_players = [len(self.player_array[i]) for i in range(self.sides)]
         self.players_per_side = np.copy(self.remaining_players)#contains the original players per side
         self.player_num = player_id#number of players+2
         self.player_forces = np.zeros([self.player_num], dtype=np.float16)
         self.r_as = np.ones([self.player_num])
         self.player_type_mask = np.zeros(self.player_num, dtype=np.uint8)
-        player_types = ["archer", "cavarly", "infantry", "wall"]
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 self.player_forces[self.player_array[i][j].id] = self.player_array[i][j].player_force
                 self.r_as[self.player_array[i][j].id] = self.player_array[i][j].r_a
-                self.player_type_mask[self.player_array[i][j].id] = player_types.index(self.player_array[i][j].player_name)
+                self.player_type_mask[self.player_array[i][j].id] = self.player_array[i][j].type
         
         if self.log:
             print(f"Finished generating players: {time.time()-self.start}")

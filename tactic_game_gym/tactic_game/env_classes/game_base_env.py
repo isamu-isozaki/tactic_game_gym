@@ -68,11 +68,11 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
                 # side_inverse = [2, 1]
                 mask = pymunk.ShapeFilter.ALL_MASKS
                 for k in range(self.num_types):
-                    if k != player.type:
+                    if k != self.type_to_index[player.type]:
                         mask = mask ^ 2**(k+self.num_types*i)
-                shape.filter = pymunk.ShapeFilter(categories=2**(player.type+self.num_types*i), mask=mask)
-                shape.color = (*colors[i*self.num_types+player.type], 255)
-                self.player_array[i][j].color = (*colors[i*self.num_types+player.type], 255)
+                shape.filter = pymunk.ShapeFilter(categories=2**(self.type_to_index[player.type]+self.num_types*i), mask=mask)
+                shape.color = (*colors[i*self.num_types+self.type_to_index[player.type]], 255)
+                self.player_array[i][j].color = (*colors[i*self.num_types+self.type_to_index[player.type]], 255)
                 self.space.add(body, shape)
                 self.balls.append(shape)
                 mass = self.mass
@@ -118,8 +118,9 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         output = np.einsum("i,j->ij",x,y)
         output /= np.abs(output).max()
         valid_mask = output > 0
+        
         try:
-            self.move_board[self.interact_side,self.interact_type, valid_mask] += np.einsum("...,i->...i", output, movement)[valid_mask]
+            self.move_board[self.interact_side,self.type_to_index[self.interact_type], valid_mask] += np.einsum("...,i->...i", output, movement)[valid_mask]
             self.move_board *= float(self.player_force_prop)/(np.abs(self.move_board+epsilon).max())
         except Exception as e:
             if self.log:
@@ -130,7 +131,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         """
         Call when clearing arrows. This occurs when space is pressed
         """
-        self.move_board[self.interact_side,...] = 0
+        self.move_board[self.interact_side,self.type_to_index[self.interact_type],...] = 0
     def render_game(self):
         if self.show:
             self.screen.blit(self.surf, [0, 0])
@@ -204,7 +205,7 @@ class Setup_Player_Graph(Setup_Pygame_Pymunk):
                 type_array = []
                 id_types = []
                 for k in range(self.players_per_side[i]):
-                    if self.player_array[i][k].type == j:
+                    if self.type_to_index[self.player_array[i][k].type] == j:
                         type_array.append(self.player_array[i][k])
                         id_types.append(int(self.player_array[i][k].id))
                 id_types = np.asarray(id_types, dtype=np.float16)
@@ -221,7 +222,7 @@ class Setup_Player_Graph(Setup_Pygame_Pymunk):
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 player = self.player_array[i][j]
-                graph = networks[i][player.type].pop(0)
+                graph = networks[i][self.type_to_index[player.type]].pop(0)
                 self.player_array[i][j].rank = graph["rank"]
                 self.player_array[i][j].sub_ids = graph["subordinates"]
                 self.player_array[i][j].superior_id = graph["superior"]
@@ -266,7 +267,7 @@ class Set_Board(Setup_Player_Graph):
                         print(f"Cosines: {player.cos}, Sine: {player.sin}")
                 self.board_sight[k, 12] = player.base_vision
                 try:
-                    self.board_sight[k, 13:15] = self.move_board[int(player.side),int(player.type), int(position[0]),int(position[1])]
+                    self.board_sight[k, 13:15] = self.move_board[int(player.side),int(self.type_to_index[player.type]), int(position[0]),int(position[1])]
                 except Exception as e:
                     if self.log:
                         print(f"{e}, move board shape: {self.move_board.shape}, side: {player.side}, position: {player.position}, index: {[player.side,player.position[0],player.position[1]]}")
