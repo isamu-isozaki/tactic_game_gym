@@ -145,6 +145,7 @@ class Generate_Players(Set_Stats):
         self.players_per_side = np.copy(self.remaining_players)#contains the original players per side
         self.player_num = player_id#number of players+2
         self.player_forces = np.zeros([self.player_num], dtype=np.float16)
+        self.player_sides = np.zeros([self.player_num], dtype=np.float16)
         self.r_as = np.ones([self.player_num])
         self.player_type_mask = np.zeros(self.player_num, dtype=np.uint8)
         for i in range(self.sides):
@@ -152,6 +153,7 @@ class Generate_Players(Set_Stats):
                 self.player_forces[self.player_array[i][j].id] = self.player_array[i][j].player_force
                 self.r_as[self.player_array[i][j].id] = self.player_array[i][j].r_a
                 self.player_type_mask[self.player_array[i][j].id] = self.player_array[i][j].type
+                self.player_sides[self.player_array[i][j].id] = i
         
         if self.log:
             print(f"Finished generating players: {time.time()-self.start}")

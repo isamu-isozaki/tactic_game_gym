@@ -12,6 +12,7 @@ class Move(Setup_Rotate_Force):
         living = self.get_alive_mask() == 1
         forces = self.board_sight[living, 13:15].copy()
         forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
+
         #drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
         #total_mag = (self.player_force*self.player_force_prop+self.align_force_prop+self.cohesion_force_prop)
         #At half of max velocity, damping in velocity d
@@ -119,7 +120,7 @@ class Attack(Mobilize):
         attacked = np.zeros(num_players, dtype=np.float16)
         mags_temp = mags.copy()
         mags_temp[mags_temp == 0] = 1
-        cos_sin = (velocities) / (mags_temp[:, None])
+        cos_sin = (velocities+[epsilon, epsilon]) / (mags_temp[:, None]+ epsilon*np.sqrt(2))
         rot_matrix = np.concatenate([\
                             np.concatenate([cos_sin[:, 0, None, None],\
                                              cos_sin[:, 1, None, None]], axis = 2),\
@@ -184,6 +185,8 @@ class Attack(Mobilize):
                 
                 living_k = living.copy()
                 living_k[living_k] = masks[k]
+                if self.vel_mags[player.id] == 0:
+                    continue
                 if player.type == 1 and self.attack_turn % self.archer_freq != 0:
                     self.attacked[i, living_k] += epsilon*player.strength
                 elif player.type == 3:
@@ -196,6 +199,10 @@ class Attack(Mobilize):
         self.attacked_dist = self.attacked.copy()
         #self.attacked contains damaged done from side i on all players
         self.can_see = self.attacked > 0
+        for i in range(self.sides):
+            self.can_see[i] = self.can_see[i] | (self.player_sides == i)
+        
+                
         #can_see contains all players each side can see
         attacked_sum = np.sum(self.attacked, axis = 0)
         #
@@ -215,7 +222,7 @@ class Attack(Mobilize):
                     self.dead[i] += 1
                     self.remaining_players[i] -= 1
                 k += 1
-        print(f"remaining players: {self.remaining_players}")
+        # print(f"remaining players: {self.remaining_players}")
         total_death = np.sum(self.dead)
         total_damage = np.sum(self.hard_coded_rewards['damage'])
         total_seen = np.sum(self.hard_coded_rewards['seen'])
