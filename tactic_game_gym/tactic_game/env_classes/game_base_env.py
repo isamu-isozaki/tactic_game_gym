@@ -187,6 +187,7 @@ class Setup_Player_Graph(Setup_Pygame_Pymunk):
         aptitude = [self.stats[0][i] + self.stats[1][i] for i in range(self.sides)]
 
         aptitude_indices = [aptitude[i].argsort() for i in range(self.sides)]
+
         self.player_array =[sort_array(self.player_array[i], aptitude_indices[i]) for i in range(self.sides)]
 
         #Reset ids
