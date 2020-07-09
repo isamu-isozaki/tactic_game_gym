@@ -128,4 +128,6 @@ class Gym_Env(Playable_Game):
         for i in range(self.sides):
             if self.remaining_players[i]-self.wall_nums[i] < self.min_players:
                 return True
+            if self.remaining_players[i]-self.wall_nums[i] < self.players_per_side[i]*self.min_frac:
+                return True
         return False

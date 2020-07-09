@@ -120,7 +120,7 @@ class Attack(Mobilize):
         attacked = np.zeros(num_players, dtype=np.float16)
         mags_temp = mags.copy()
         mags_temp[mags_temp == 0] = 1
-        cos_sin = (velocities+[epsilon, epsilon]) / (mags_temp[:, None]+ epsilon*np.sqrt(2))
+        cos_sin = (velocities) / (mags_temp[:, None])
         rot_matrix = np.concatenate([\
                             np.concatenate([cos_sin[:, 0, None, None],\
                                              cos_sin[:, 1, None, None]], axis = 2),\
@@ -185,14 +185,14 @@ class Attack(Mobilize):
                 
                 living_k = living.copy()
                 living_k[living_k] = masks[k]
-                if self.vel_mags[player.id] == 0:
+                if self.vel_mags[player.id] < 0.01:
                     continue
                 if player.type == 1 and self.attack_turn % self.archer_freq != 0:
-                    self.attacked[i, living_k] += epsilon*player.strength
+                    self.attacked[i, living_k & (self.player_sides != i)] += epsilon
                 elif player.type == 3:
-                    self.attacked[i, living_k] += epsilon
+                    self.attacked[i, living_k & (self.player_sides != i)] += epsilon
                 else:
-                    self.attacked[i, living_k] += player.strength
+                    self.attacked[i, living_k & (self.player_sides != i)] += player.strength
         #Potenially slow bad but
         #if self.log:
         # print(self.attacked)
@@ -222,11 +222,9 @@ class Attack(Mobilize):
                     self.dead[i] += 1
                     self.remaining_players[i] -= 1
                 k += 1
-        # print(f"remaining players: {self.remaining_players}")
         total_death = np.sum(self.dead)
         total_damage = np.sum(self.hard_coded_rewards['damage'])
         total_seen = np.sum(self.hard_coded_rewards['seen'])
-        # print(self.hard_coded_rewards)
 
         for i in range(self.sides):
             self.hard_coded_rewards['death_offset'][i] = total_death - 2*self.dead[i]#how many more died then your side
