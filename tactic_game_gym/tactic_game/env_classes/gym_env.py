@@ -6,11 +6,16 @@ import cv2
 class Gym_Env(Playable_Game):
     def __init__(self, **kwargs):
         Playable_Game.__init__(self, **kwargs)
-    def update_step(self, hard_code_rate=1.):
-        self.game_step()
-        self.reset_web()
-        self.set_board()
-        done = self.end()
+    def update_step(self, hard_code_rate=1., play=False):
+        for i in range(self.moves_without_model):
+            if play:
+                self.env_step()
+            self.game_step()
+            self.reset_web()
+            self.set_board()
+            done = self.end()
+            if done:
+                break
         if self.t>=self.terminate_turn or self.end():
             done = True
         
@@ -41,40 +46,44 @@ class Gym_Env(Playable_Game):
         for i in range(self.sides):
             infos[i]["episode"]["hard_code_rate"] = hard_code_rate
         return self.obs, self.rewards, dones, infos
-    def step(self, action=None, hard_code_rate=1.):
+    def step(self, action=None, hard_code_rate=1., play=False):
         if not self.started:
             self.start_game()
+            self.init_env()
         side = self.side
-        action = np.reshape(action, [self.act_board_size, self.act_board_size, self.num_types, 2])
-        action *= self.player_force_prop
-        if self.is_train:
-            size = self.act_board_size // self.stage
-            for i in range(self.stage):
-                for j in range(self.stage):
-                    for l in range(self.num_types):
-                        for k in range(2):
-                            action_segment = action[size*i:size*(i+1), size*j:size*(j+1), l,  k]
-                            action_mean = action_segment.mean()
-                            action_std = action_segment.std()
-                            action[size*i:size*(i+1), size*j:size*(j+1), l, k] = np.random.normal(action_mean, action_std)
-        self.action[self.side] = action.copy()
-        for i in range(self.num_types):
-            self.move_board[side, i] = cv2.resize(action[:, :, i, :].astype(np.float32), (self.board_size[0], self.board_size[1])).astype(np.float16)
-        # if self.save_imgs:
-        # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
-        # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
+        if not play or side != self.interact_side:
+            action = np.reshape(action, [self.act_board_size, self.act_board_size, self.num_types, 2])
+            action *= self.player_force_prop
+            if self.is_train:
+                size = self.act_board_size // self.stage
+                for i in range(self.stage):
+                    for j in range(self.stage):
+                        for l in range(self.num_types):
+                            for k in range(2):
+                                action_segment = action[size*i:size*(i+1), size*j:size*(j+1), l,  k]
+                                action_mean = action_segment.mean()
+                                action_std = action_segment.std()
+                                action[size*i:size*(i+1), size*j:size*(j+1), l, k] = np.random.normal(action_mean, action_std)
+            self.action[self.side] = action.copy()
+            for i in range(self.num_types):
+                self.move_board[side, i] = cv2.resize(action[:, :, i, :].astype(np.float32), (self.board_size[0], self.board_size[1])).astype(np.float16)
+            # if self.save_imgs:
+            # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
+            # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
         self.finished_sides[side] = 1
         self.side += 1
         self.side %= self.sides
         if self.finished_sides[self.finished_sides == 0].shape[0] == 0:
-            return self.update_step(hard_code_rate)
+            return self.update_step(hard_code_rate, play)
         return None, None, None, None
-    def reset(self):
+    def reset(self, play=False):
         self.__init__(**self.kwargs)
         self.start_game()
         self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
         self.t = 0
         self.get_sight()
+        if play:
+            self.init_env()
         return [self.obs]
     def render(self, mode='human', close=False):
         self.render_output = self.beautiful_output.copy()
