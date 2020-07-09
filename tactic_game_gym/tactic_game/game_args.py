@@ -8,7 +8,8 @@ def arg_parser():#credits to OpenAI!
 	import argparse
 	return argparse.ArgumentParser(
 		description='Setting up tactic game',
-		formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+		formatter_class=argparse.ArgumentDefaultsHelpFormatter, 
+		allow_abbrev=False)
 def game_args_parser():
 	parser = arg_parser()
 	parser.add_argument('--act_board_size', type=int,default=16, help='The board size for action board. Must be power of 2')
