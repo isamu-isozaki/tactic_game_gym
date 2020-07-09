@@ -263,95 +263,95 @@ class Playable_Game(Attack):
                     if alive[web_id]:
                         new_web.append(web_id)
                 self.player_array[i][j].web = new_web
+    def env_step(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                break
+            elif event.type == pygame.MOUSEBUTTONDOWN:#By clicking two times form arrow that gives force for players to move
+                if event.button == 1:
+                    if self.start_pos == None:
+                        self.start_pos = pygame.mouse.get_pos()
+                    else:
+                        self.interact_move(self.start_pos, pygame.mouse.get_pos())
+                        start_pos = None
+                elif event.button == 4:
+                    self.vec_width += self.vec_width_diff
+                    if self.log:
+                        print(f"Current vec width is {self.vec_width}")
+                elif event.button == 5:
+                    self.vec_width -= self.vec_width_diff
+                    if self.log:
+                        print(f"Current vec width is {self.vec_width}")
+                elif event.button == 3:
+                    self.clear_screen()
+                    if self.log:
+                        print(f"Cleared screen")
+                elif event.button == 2:
+                    self.interact_side += 1
+                    self.interact_side %= self.sides
+                    if self.log:
+                        print(f"Changed side to {self.interact_side}")
+            elif event.type == pygame.KEYDOWN:
+                player_types = ["archer", "cavarly", "infantry", "wall"]
+                if event.key == pygame.K_0:
+                    if 0 not in self.type_to_index:
+                        print("Can't change sides to this")
+                    else:
+                        self.interact_type = 0
+                        if self.log:
+                            print(f"Changed type to {player_types[self.interact_type]}")
+                elif event.key == pygame.K_1:
+                    if 1 not in self.type_to_index:
+                        print("Can't change sides to this")
+                    else:
+                        self.interact_type = 1
+                        if self.log:
+                            print(f"Changed type to {player_types[self.interact_type]}")
+                elif event.key == pygame.K_2:
+                    if 2 not in self.type_to_index:
+                        print("Can't change sides to this")
+                    else:
+                        self.interact_type = 2
+                        if self.log:
+                            print(f"Changed type to {player_types[self.interact_type]}")
+                elif event.key == pygame.K_3:
+                    if 3 not in self.type_to_index:
+                        print("Can't change sides to this")
+                    else:
+                        self.interact_type = 3
+                        if self.log:
+                            print(f"Changed type to {player_types[self.interact_type]}")
+            else:
+                None
+
+        self.t += 1
+        self.game_step()
+        # if self.save_imgs:
+        # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
+        # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
+
+        #self.reset_web()
+        self.set_board()
+        if self.t>=self.terminate_turn or self.end():
+            pygame.quit()
+    def init_env(self):
+        self.start_game()
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
+        self.start_pos = None
     def run_env(self):
         """
         Test if environment is running properly. Show argument must be true
         """
-        self.start_game()
-        # if self.save_imgs:
-        # 	if not os.path.exists( self.base_directory+ "/animation"):
-        # 		os.makedirs( self.base_directory + "/animation")
-        # 	folders = os.listdir(self.base_directory  + "/animation")
-        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
-        start_pos = None
-        for t in tqdm(itertools.count()):
+        self.init_env()
+        while True:
             try:
-                for event in pygame.event.get():
-                    if event.type == pygame.QUIT:
-                        pygame.quit()
-                        break
-                    elif event.type == pygame.MOUSEBUTTONDOWN:#By clicking two times form arrow that gives force for players to move
-                        if event.button == 1:
-                            if start_pos == None:
-                                start_pos = pygame.mouse.get_pos()
-                            else:
-                                self.interact_move(start_pos, pygame.mouse.get_pos())
-                                start_pos = None
-                        elif event.button == 4:
-                            self.vec_width += self.vec_width_diff
-                            if self.log:
-                                print(f"Current vec width is {self.vec_width}")
-                        elif event.button == 5:
-                            self.vec_width -= self.vec_width_diff
-                            if self.log:
-                                print(f"Current vec width is {self.vec_width}")
-                        elif event.button == 3:
-                            self.clear_screen()
-                            if self.log:
-                                print(f"Cleared screen")
-                        elif event.button == 2:
-                            self.interact_side += 1
-                            self.interact_side %= self.sides
-                            if self.log:
-                                print(f"Changed side to {self.interact_side}")
-                    elif event.type == pygame.KEYDOWN:
-                        player_types = ["archer", "cavarly", "infantry", "wall"]
-                        if event.key == pygame.K_0:
-                            if 0 not in self.type_to_index:
-                                print("Can't change sides to this")
-                            else:
-                                self.interact_type = 0
-                                if self.log:
-                                    print(f"Changed type to {player_types[self.interact_type]}")
-                        elif event.key == pygame.K_1:
-                            if 1 not in self.type_to_index:
-                                print("Can't change sides to this")
-                            else:
-                                self.interact_type = 1
-                                if self.log:
-                                    print(f"Changed type to {player_types[self.interact_type]}")
-                        elif event.key == pygame.K_2:
-                            if 2 not in self.type_to_index:
-                                print("Can't change sides to this")
-                            else:
-                                self.interact_type = 2
-                                if self.log:
-                                    print(f"Changed type to {player_types[self.interact_type]}")
-                        elif event.key == pygame.K_3:
-                            if 3 not in self.type_to_index:
-                                print("Can't change sides to this")
-                            else:
-                                self.interact_type = 3
-                                if self.log:
-                                    print(f"Changed type to {player_types[self.interact_type]}")
-                    else:
-                        None
-
-                self.t = t
-                self.game_step()
-                # if self.save_imgs:
-                # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
-                # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
-
-                #self.reset_web()
-                self.set_board()
-                if t>=self.terminate_turn or self.end():
-                    pygame.quit()
-                    break
-
+                self.env_step()
             except Exception as e:
                 import traceback
                 print(f"{e}")
                 print(traceback.format_exc())
                 pygame.quit()
+                break
+            if self.t>=self.terminate_turn or self.end():
                 break
