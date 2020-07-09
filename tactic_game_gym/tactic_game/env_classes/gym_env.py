@@ -6,11 +6,16 @@ import cv2
 class Gym_Env(Playable_Game):
     def __init__(self, **kwargs):
         Playable_Game.__init__(self, **kwargs)
-    def update_step(self, hard_code_rate=1.):
-        self.game_step()
-        self.reset_web()
-        self.set_board()
-        done = self.end()
+    def update_step(self, hard_code_rate=1., play=False):
+        for i in range(self.moves_without_model):
+            if play:
+                self.env_step()
+            self.game_step()
+            self.reset_web()
+            self.set_board()
+            done = self.end()
+            if done:
+                break
         if self.t>=self.terminate_turn or self.end():
             done = True
         

@@ -232,8 +232,6 @@ class Attack(Mobilize):
             self.hard_coded_rewards['seen'][i] = total_seen - 2*self.hard_coded_rewards['seen'][i]#how many more were seen on your side
             #Overall, becomes a zero sum game
             #self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
-        print(self.hard_coded_rewards)
-        print(self.remaining_players)
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if self.player_array[i][j].alive and self.player_array[i][j].id in alive:
@@ -274,7 +272,7 @@ class Playable_Game(Attack):
                         self.start_pos = pygame.mouse.get_pos()
                     else:
                         self.interact_move(self.start_pos, pygame.mouse.get_pos())
-                        start_pos = None
+                        self.start_pos = None
                 elif event.button == 4:
                     self.vec_width += self.vec_width_diff
                     if self.log:
@@ -324,17 +322,10 @@ class Playable_Game(Attack):
                             print(f"Changed type to {player_types[self.interact_type]}")
             else:
                 None
-
         self.t += 1
-        self.game_step()
-        # if self.save_imgs:
-        # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
-        # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
-
-        #self.reset_web()
-        self.set_board()
-        if self.t>=self.terminate_turn or self.end():
-            pygame.quit()
+        
+        
+        
     def init_env(self):
         self.start_game()
         self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
@@ -347,6 +338,16 @@ class Playable_Game(Attack):
         while True:
             try:
                 self.env_step()
+                self.game_step()
+                if self.t>=self.terminate_turn or self.end():
+                    pygame.quit()
+                
+                # if self.save_imgs:
+                # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
+                # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
+
+                #self.reset_web()
+                self.set_board()
             except Exception as e:
                 import traceback
                 print(f"{e}")
