@@ -27,6 +27,7 @@ def get_random_normal_with_min(mean, std_prop, set_max=False, size=1):
 class Setup_Var_Init(Map_Env):
     def __init__(self, **kwargs):
         Map_Env.__init__(self, **kwargs)
+        self.init_reward = True
         self.side = 0
         self.rotation = random.random() < 0.5
         self.flip = random.random() < 0.5

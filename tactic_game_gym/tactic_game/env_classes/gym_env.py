@@ -7,6 +7,7 @@ class Gym_Env(Playable_Game):
     def __init__(self, **kwargs):
         Playable_Game.__init__(self, **kwargs)
     def update_step(self, hard_code_rate=1., play=False):
+        self.init_reward = True
         for i in range(self.moves_without_model):
             if play:
                 self.env_step()
@@ -49,7 +50,9 @@ class Gym_Env(Playable_Game):
     def step(self, action=None, hard_code_rate=1., play=False):
         if not self.started:
             self.start_game()
-            self.init_env()
+            if play:
+                self.init_env()
+                self.interact_side = 1
         side = self.side
         if not play or side != self.interact_side:
             action = np.reshape(action, [self.act_board_size, self.act_board_size, self.num_types, 2])
@@ -84,6 +87,7 @@ class Gym_Env(Playable_Game):
         self.get_sight()
         if play:
             self.init_env()
+            self.interact_side = 1
         return [self.obs]
     def render(self, mode='human', close=False):
         self.render_output = self.beautiful_output.copy()

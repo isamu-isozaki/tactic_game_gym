@@ -169,11 +169,13 @@ class Attack(Mobilize):
         self.attacked[...] = 0
         self.attacked_dist[...] = 0
         self.can_see[...] = 0
-        self.hard_coded_rewards['death_offset'][...] = 0
-        self.hard_coded_rewards['damage'][...] = 0
-        self.hard_coded_rewards['seen'][...] = 0
-        self.dead[...] = 0
-        self.rewards[...] = 0#make it so that one dies
+        if self.init_reward:
+            self.hard_coded_rewards['death_offset'][...] = 0
+            self.hard_coded_rewards['damage'][...] = 0
+            self.hard_coded_rewards['seen'][...] = 0
+            self.dead[...] = 0
+            self.rewards[...] = 0
+            self.init_reward = False
         k = -1
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
@@ -210,26 +212,32 @@ class Attack(Mobilize):
             # Damage done to side i players from all the other players
             self.attacked[i] = attacked_sum - self.attacked[i]
         k = 0
+        temp_rewards = dict(self.hard_coded_rewards)
+        temp_dead = self.dead.copy()
+        temp_rewards['death_offset'][...] = 0
+        temp_rewards['damage'][...] = 0
+        temp_rewards['seen'][...] = 0
+        temp_dead[...] = 0
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if not self.player_array[i][j].alive:
                     continue
                 player_hp = self.player_array[i][j].hp
                 player_alive = self.player_array[i][j].damage(self.attacked[i][k]+self.continue_penalty)
-                self.hard_coded_rewards['damage'][i] += np.min([self.attacked[i][k], player_hp])
-                self.hard_coded_rewards['seen'][i] += 1 if self.attacked[i][k] > 0 else 0
+                temp_rewards['damage'][i] += np.min([self.attacked[i][k], player_hp])
+                temp_rewards['seen'][i] += 1 if self.attacked[i][k] > 0 else 0
                 if not player_alive:
-                    self.dead[i] += 1
+                    temp_dead[i] += 1
                     self.remaining_players[i] -= 1
                 k += 1
-        total_death = np.sum(self.dead)
-        total_damage = np.sum(self.hard_coded_rewards['damage'])
-        total_seen = np.sum(self.hard_coded_rewards['seen'])
+        total_death = np.sum(temp_dead)
+        total_damage = np.sum(temp_rewards['damage'])
+        total_seen = np.sum(temp_rewards['seen'])
 
         for i in range(self.sides):
-            self.hard_coded_rewards['death_offset'][i] = total_death - 2*self.dead[i]#how many more died then your side
-            self.hard_coded_rewards['damage'][i] = total_damage - 2*self.hard_coded_rewards['damage'][i]#how much more damage occured on your side
-            self.hard_coded_rewards['seen'][i] = total_seen - 2*self.hard_coded_rewards['seen'][i]#how many more were seen on your side
+            self.hard_coded_rewards['death_offset'][i] += total_death - 2*temp_dead[i]#how many more died then your side
+            self.hard_coded_rewards['damage'][i] += total_damage - 2*temp_rewards['damage'][i]#how much more damage occured on your side
+            self.hard_coded_rewards['seen'][i] += total_seen - 2*temp_rewards['seen'][i]#how many more were seen on your side
             #Overall, becomes a zero sum game
             #self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
         for i in range(self.sides):
@@ -327,7 +335,6 @@ class Playable_Game(Attack):
         
         
     def init_env(self):
-        self.start_game()
         self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
         self.start_pos = None
     def run_env(self):
@@ -335,6 +342,7 @@ class Playable_Game(Attack):
         Test if environment is running properly. Show argument must be true
         """
         self.init_env()
+        self.start_game()
         while True:
             try:
                 self.env_step()
