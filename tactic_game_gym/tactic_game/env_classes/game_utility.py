@@ -213,11 +213,9 @@ class Attack(Mobilize):
             self.attacked[i] = attacked_sum - self.attacked[i]
         k = 0
         temp_rewards = dict(self.hard_coded_rewards)
-        temp_dead = self.dead.copy()
-        temp_rewards['death_offset'][...] = 0
-        temp_rewards['damage'][...] = 0
-        temp_rewards['seen'][...] = 0
-        temp_dead[...] = 0
+        temp_dead = np.zeros(self.sides, dtype=np.float16)
+        temp_rewards['damage'] = np.zeros(self.sides, dtype=np.float16)
+        temp_rewards['seen'] = np.zeros(self.sides, dtype=np.float16)
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if not self.player_array[i][j].alive:

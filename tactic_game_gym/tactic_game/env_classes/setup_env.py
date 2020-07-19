@@ -112,7 +112,6 @@ class Generate_Players(Set_Stats):
         Set_Stats.__init__(self, **kwargs)
         self.player_array = []
         
-        assert self.archer_prop + self.cavarly_prop + self.infantry_prop + self.wall_prop== 1
         #Make it so that order to make prop 0 doesn't matter
         self.class_probs = np.array([self.archer_prop, self.cavarly_prop, self.infantry_prop, self.wall_prop])
         class_nums = [0, 1, 2, 3]
