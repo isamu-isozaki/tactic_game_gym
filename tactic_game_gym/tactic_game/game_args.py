@@ -34,7 +34,7 @@ def game_args_parser():
 	parser.add_argument('--cap_prop', type=float, default=0.6, help='The propotion of the std of the normal distribution for capabilities(hp, strengt)')
 	parser.add_argument('--cavarly_base_vision', type=float, default=13., help='The attack range of cavarly')
 	parser.add_argument('--cavarly_density', type=float, default=1, help='The mass density of cavarly')
-	parser.add_argument('--cavarly_force', type=float, default=0.6, help='How much more force cavarly has than the infantry. This is to account for their larger mass.')
+	parser.add_argument('--cavarly_force', type=float, default=0.6*1.2**3, help='How much more force cavarly has than the infantry. This is to account for their larger mass.')
 	parser.add_argument('--cavarly_hp', type=float, default=1.5, help='How much more hp cavarly has than the infantry. This is to account for their larger size.')
 	parser.add_argument('--cavarly_k', type=float, default=1**3, help='The multiplier to the spring coefficient for cavarly')
 	parser.add_argument('--cavarly_max_speed', type=float, default=1.5, help='How much more larger the max speed of the cavarly is')
@@ -71,7 +71,7 @@ def game_args_parser():
 	parser.add_argument('--mass', type=float, default=1.0, help='Mass of players')#This is the same as attack range
 	parser.add_argument('--max_angle', type=float, default=np.pi/3, help='The maximum angle possible for the terrain to have')
 	parser.add_argument('--max_players', type=int, default=1000, help='Maximum number of players per game')
-	parser.add_argument('--max_speed', type=float, default=2.0, help='The max speed')
+	parser.add_argument('--max_speed', type=float, default=6.0, help='The max speed')
 	parser.add_argument('--min_frac', default=1/3., type=float, help='The proportion of players at which the game ends')
 	parser.add_argument('--min_players', default=50, type=int, help='The minimum number of players at which point the game ends')
 	parser.add_argument('--moves_without_attack', type=int, default=3, help='The number of moves without needing to attack')
