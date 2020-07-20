@@ -2,6 +2,8 @@ from tactic_game_gym.tactic_game.env_classes.game_utility import Playable_Game
 from tactic_game_gym.tactic_game.utility import get_n_colors
 import numpy as np
 import cv2
+import pygame
+from pygame.locals import *
 
 class Gym_Env(Playable_Game):
     def __init__(self, **kwargs):
@@ -50,9 +52,10 @@ class Gym_Env(Playable_Game):
     def step(self, action=None, hard_code_rate=1., play=False):
         if not self.started:
             self.start_game()
-            if play:
-                self.init_env()
-                self.interact_side = 1
+        if not self.pygame_initialized and play:
+            self.interact_side = 1
+            self.init_env()
+            self.pygame_initialized = True
         side = self.side
         if not play or side != self.interact_side:
             action = np.reshape(action, [self.act_board_size, self.act_board_size, self.num_types, 2])
@@ -79,15 +82,13 @@ class Gym_Env(Playable_Game):
         if self.finished_sides[self.finished_sides == 0].shape[0] == 0:
             return self.update_step(hard_code_rate, play)
         return None, None, None, None
-    def reset(self, play=False):
+    def reset(self):
         self.__init__(**self.kwargs)
         self.start_game()
         self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
         self.t = 0
         self.get_sight()
-        if play:
-            self.init_env()
-            self.interact_side = 1
+        self.pygame_initialized = False
         return [self.obs]
     def render(self, mode='human', close=False):
         self.render_output = self.beautiful_output.copy()

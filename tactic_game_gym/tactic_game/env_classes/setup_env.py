@@ -81,9 +81,7 @@ class Set_Stats(Setup_Var_Init):
             board_width = self.board_size[1]
             board_height = self.board_size[0]
         width = (board_width)// self.sides
-        players_per_side = [self.population_map[i*width:(i+1)*width].sum() for i in range(self.sides)]
-        if self.rotation:
-            players_per_side = [self.population_map[:, i*width:(i+1)*width].sum() for i in range(self.sides)]
+        players_per_side = [1/self.sides for i in range(self.sides)]
         players_per_side = np.asarray(players_per_side, dtype=np.float16)
         players_per_side /= players_per_side.sum()
         players_per_side *= self.max_players
@@ -111,6 +109,7 @@ class Generate_Players(Set_Stats):
     def __init__(self, **kwargs):
         Set_Stats.__init__(self, **kwargs)
         self.player_array = []
+        
         #Make it so that order to make prop 0 doesn't matter
         self.class_probs = np.array([self.archer_prop, self.cavarly_prop, self.infantry_prop, self.wall_prop])
         class_nums = [0, 1, 2, 3]
