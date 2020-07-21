@@ -55,8 +55,8 @@ class Setup_Var_Init(Map_Env):
         self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3], dtype=np.float16)
         self.finished_sides = np.zeros(self.sides, dtype=np.float16)
         self.move_board = np.zeros([self.sides] + [self.num_types] + self.board_size+[2], dtype=np.float16)
-        obs_shape = (self.obs_board_size, self.obs_board_size, 1+2+2*2+1)
-        obs_full_shape  = (*self.board_size, 1+2+2*2+1)
+        obs_shape = (self.obs_board_size, self.obs_board_size, 1+2*2+2*2+1)
+        obs_full_shape  = (*self.board_size, 1+2*2+2*2+1)
         self.obs = np.zeros([self.sides] + list(obs_shape), dtype=np.float16)
         self.obs_full = np.zeros([self.sides] + list(obs_full_shape), dtype=np.float16)
         for i in range(self.sides):

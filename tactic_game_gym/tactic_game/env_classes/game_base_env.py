@@ -309,15 +309,18 @@ class Get_Sight(Set_Board):
                     position = np.asarray(position, dtype=np.float16)
                     position[position > self.board_size[0]-1] =  self.board_size[0]-1
                     self.obs_full[i, int(position[0]), int(position[1]), 1] = player.hp if i == i2 else 0
-                    self.obs_full[i, int(position[0]), int(position[1]), 2] = player.hp if i != i2 else 0
-                    self.obs_full[i, int(position[0]), int(position[1]), 3:5] = player.velocity.copy() if i == i2 else [0,0]
-                    self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i != i2 else [0,0]
-                    self.obs_full[i, int(position[0]), int(position[1]), 7] = self.attacked_dist[i, player.id]
+                    self.obs_full[i, int(position[0]), int(position[1]), 2] = player.type+1 if i == i2 else 0
+                    self.obs_full[i, int(position[0]), int(position[1]), 3] = player.hp if i != i2 else 0
+                    self.obs_full[i, int(position[0]), int(position[1]), 4] = player.type+1 if i != i2 else 0
+                    self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i == i2 else [0,0]
+                    self.obs_full[i, int(position[0]), int(position[1]), 7:9] = player.velocity.copy() if i != i2 else [0,0]
+                    self.obs_full[i, int(position[0]), int(position[1]), 9] = self.attacked_dist[i, player.id]
             #normalize
             self.obs_full[i, np.abs(self.obs_full[i]) < epsilon] = 0
-            self.obs_full[i, ..., 1:3] /= self.hp*(1+self.rand_prop)
-            self.obs_full[i, ..., 3:7] /= self.max_speed
-            self.obs_full[i, ..., 7] /= self.strength*self.max_players*(1-1/self.sides)*self.attack_div_frac
+            self.obs_full[i, ..., 1:5][..., ::2] /= self.hp*(1+self.rand_prop)
+            self.obs_full[i, ..., 2:5][..., ::2] /= self.num_types + 1
+            self.obs_full[i, ..., 5:9] /= self.max_speed
+            self.obs_full[i, ..., 9] /= self.strength*self.max_players*(1-1/self.sides)*self.attack_div_frac
             self.obs_full [i, ..., 1:] *= 255
             #as in cnn, it's divided by 255
             """
