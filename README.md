@@ -15,7 +15,7 @@ pip install -e .
 Run
 
 ```
-python -m tactic_game_gym.tactic_game.game --test_env --show --log --use_boid --full_view
+python -m tactic_game_gym.tactic_game.game --test_env --show --log --full_view
 ```
 
 # Get environment

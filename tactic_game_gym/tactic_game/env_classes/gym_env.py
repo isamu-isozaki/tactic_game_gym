@@ -59,17 +59,16 @@ class Gym_Env(Playable_Game):
         side = self.side
         if not play or side != self.interact_side:
             action = np.reshape(action, [self.act_board_size, self.act_board_size, self.num_types, 2])
-            action *= self.player_force_prop
-            if self.is_train:
-                size = self.act_board_size // self.stage
-                for i in range(self.stage):
-                    for j in range(self.stage):
-                        for l in range(self.num_types):
-                            for k in range(2):
-                                action_segment = action[size*i:size*(i+1), size*j:size*(j+1), l,  k]
-                                action_mean = action_segment.mean()
-                                action_std = action_segment.std()
-                                action[size*i:size*(i+1), size*j:size*(j+1), l, k] = np.random.normal(action_mean, action_std)
+            # if self.is_train:
+            #     size = self.act_board_size // self.stage
+            #     for i in range(self.stage):
+            #         for j in range(self.stage):
+            #             for l in range(self.num_types):
+            #                 for k in range(2):
+            #                     action_segment = action[size*i:size*(i+1), size*j:size*(j+1), l,  k]
+            #                     action_mean = action_segment.mean()
+            #                     action_std = action_segment.std()
+            #                     action[size*i:size*(i+1), size*j:size*(j+1), l, k] = np.random.normal(action_mean, action_std)
             self.action[self.side] = action.copy()
             for i in range(self.num_types):
                 self.move_board[side, i] = cv2.resize(action[:, :, i, :].astype(np.float32), (self.board_size[0], self.board_size[1])).astype(np.float16)

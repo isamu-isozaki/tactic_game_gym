@@ -10,8 +10,9 @@ class Move(Setup_Rotate_Force):
         Setup_Rotate_Force.__init__(self, **kwargs)
     def move(self):
         living = self.get_alive_mask() == 1
-        forces = self.board_sight[living, 13:15].copy()
-        forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
+        final_vel = self.board_sight[living, 13:15].copy()
+        final_vel *= self.max_speed#For now only one max speed
+        #forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
 
         #drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
         #total_mag = (self.player_force*self.player_force_prop+self.align_force_prop+self.cohesion_force_prop)
@@ -19,6 +20,7 @@ class Move(Setup_Rotate_Force):
         #forces -= self.board_sight[living, 2:4]*total_mag/(self.max_speed*self.damping_start)
         if self.use_boid:
             forces += self.get_boids(living)
+        forces = (final_vel - self.board_sight[living, 2:4])*self.vel_diff_coef
 
         z = np.abs(self.board_sight[living, 11].copy())#z index of rotated 3d array
         sign = np.sign(np.einsum("...i, ...i->...", forces, self.board_sight[living, 15:17]))
@@ -51,16 +53,11 @@ class Move(Setup_Rotate_Force):
                 position = self.current_balls[k].body._get_position()
                 velocity = np.asarray(self.current_balls[k].body._get_velocity(), dtype=np.float16)
                 speed = self.current_balls[k].body.velocity.length
-                scale = 1
-                if speed > self.max_speed:
-                    scale = self.max_speed/speed
-                    self.current_balls[k].body._set_velocity((scale*velocity).tolist())
-                    speed = self.max_speed
                 self.player_array[i][j].speed = speed
                 self.vel_mags[id] = speed
-                self.player_array[i][j].vel = [self.player_array[i][j].position, self.player_array[i][j].position+scale*velocity]
+                self.player_array[i][j].vel = [self.player_array[i][j].position, self.player_array[i][j].position+velocity]
                 self.player_array[i][j].position = np.array(position, dtype=np.float16)
-                self.player_array[i][j].velocity = scale*velocity
+                self.player_array[i][j].velocity = velocity
                 k += 1
 
 
@@ -99,6 +96,7 @@ class Attack(Mobilize):
     def __init__(self, **kwargs):
         Mobilize.__init__(self, **kwargs)
     def attack(self, epsilon=1e-5):
+        # Change attack to constant size
         INF = 10**5
         rotation = True
         prop_side = self.prop_side
@@ -132,8 +130,9 @@ class Attack(Mobilize):
         Y = np.reshape(-positions[:, 1, None]+y, [num_players, num_players])
         #X[i], Y[i] is the x and y coordinates of all of the players when the ith player is at (0,0)
         XY = np.concatenate([X[..., None], Y[..., None]], axis = 2)
-        attack_range_mags = mags / (self.attrange_div_const*self.max_speed)
-        attack_range_mags[is_archer[living]] = 1/self.attrange_div_const - attack_range_mags[is_archer[living]]#The higher the velocity, the lower the range
+        attack_range_mags = np.ones_like(mags)
+        #ignore archers for now
+        #attack_range_mags[is_archer[living]] *= 
         base_index = 12
         attack_range = self.range_factor*np.einsum("i,i->i",attack_range_mags, self.board_sight[living, base_index])[:, None]#set max value of einsum to 1
         #attack_range = np.ones(num_players) + 10
@@ -248,6 +247,7 @@ class Attack(Mobilize):
 
         self.set_board()
         self.attack_turn += 1
+        #change reward
 class Playable_Game(Attack):
     def __init__(self, **kwargs):
         Attack.__init__(self, **kwargs)

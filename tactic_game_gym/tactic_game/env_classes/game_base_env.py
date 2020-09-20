@@ -122,7 +122,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         
         try:
             self.move_board[self.interact_side,self.type_to_index[self.interact_type], valid_mask] += np.einsum("...,i->...i", output, movement)[valid_mask]
-            self.move_board *= float(self.player_force_prop)/(np.abs(self.move_board+epsilon).max())
+            self.move_board *= 1./(np.abs(self.move_board+epsilon).max())
         except Exception as e:
             if self.log:
                 print(f"{e}, move board shape: {self.move_board[self.interact_side,self.interact_type,valid_mask].shape}, output shape: {output.shape}, movement shape: {movement.shape}")
