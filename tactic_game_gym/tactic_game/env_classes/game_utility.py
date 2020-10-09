@@ -219,7 +219,8 @@ class Attack(Mobilize):
             for j in range(self.players_per_side[i]):
                 if not self.player_array[i][j].alive:
                     continue
-                player_hp = self.player_array[i][j].hp
+                player = self.player_array[i][j]
+                player_hp = player.hp
                 player_alive = self.player_array[i][j].damage(self.attacked[i][k]+self.continue_penalty)
                 temp_rewards['damage'][i] += np.min([self.attacked[i][k], player_hp])
                 temp_rewards['seen'][i] += 1 if self.attacked[i][k] > 0 else 0

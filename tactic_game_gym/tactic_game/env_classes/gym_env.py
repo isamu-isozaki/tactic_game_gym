@@ -144,3 +144,4 @@ class Gym_Env(Playable_Game):
             if self.remaining_players[i]-self.wall_nums[i] < self.players_per_side[i]*self.min_frac:
                 return True
         return False
+        #wrong guys seem to be dying
