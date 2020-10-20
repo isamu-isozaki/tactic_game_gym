@@ -156,8 +156,13 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
                         opactiy = 0 if opacity is None else opacity
                         color_player = list(player.color[:3]) + [int(255*opacity)]
                         #This is a problem. Pygame only supports integers. Thus, animations won't be fluid
-                        pygame.draw.circle(self.screen, color_player,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
-                        pygame.draw.line(self.screen, color_player, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
+                        # pygame.draw.circle(self.screen, color_player,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
+                        
+                        font = pygame.font.SysFont(None, 24)
+                        img = font.render(f'{player.id}', True, color_player)
+                        self.screen.blit(img, self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]))
+                        
+                        #pygame.draw.line(self.screen, color_player, [int(x[0]), int(x[1])], [int(y[0]), int(y[1])])
                         if self.draw_connections:
                             for id in player.web:
                                 if self.return_alive(id):
