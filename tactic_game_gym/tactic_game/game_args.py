@@ -15,11 +15,7 @@ def game_args_parser():
 	parser.add_argument('--act_board_size', type=int,default=2, help='The board size for action board. Must be power of 2')
 	parser.add_argument('--align_force_prop', type=float,default=1.0, help='The force to align the players')
 	parser.add_argument('--archer_attack_range', type=float, default=1.5, help='The archer\'s attack range prop com/infantry')
-<<<<<<< HEAD
 	parser.add_argument('--archer_base_vision', type=float, default=4.0, help='The attack range of archer')
-=======
-	parser.add_argument('--archer_base_vision', type=float, default=5.0, help='The attack range of archer')
->>>>>>> a1beee81b609d5502958f6d460b810b0e126a3d2
 	parser.add_argument('--archer_density', type=float, default=1, help='The mass density of archer')
 	parser.add_argument('--archer_force', type=float, default=0.5, help='The force coefficient of archer')
 	parser.add_argument('--archer_freq', type=int, default=8, help='The frequency at which archers attack')
@@ -37,11 +33,7 @@ def game_args_parser():
 	parser.add_argument('--boid_damping_factor', type=float, default=0.5, help='The coefficient of velocity used for damping for boid')
 	parser.add_argument('--board_size', type=int, default=257, help='The number of sides in the war. Due to diamond square algorithm, must be in the form of 2^n+1')
 	parser.add_argument('--cap_prop', type=float, default=0.8, help='The propotion of the std of the normal distribution for capabilities(hp, strengt)')
-<<<<<<< HEAD
 	parser.add_argument('--cavarly_base_vision', type=float, default=4., help='The attack range of cavarly')
-=======
-	parser.add_argument('--cavarly_base_vision', type=float, default=5., help='The attack range of cavarly')
->>>>>>> a1beee81b609d5502958f6d460b810b0e126a3d2
 	parser.add_argument('--cavarly_density', type=float, default=1, help='The mass density of cavarly')
 	parser.add_argument('--cavarly_force', type=float, default=0.65, help='How much more force cavarly has than the infantry. This is to account for their larger mass.')
 	parser.add_argument('--cavarly_hp', type=float, default=1.5, help='How much more hp cavarly has than the infantry. This is to account for their larger size.')
@@ -113,11 +105,7 @@ def game_args_parser():
 	parser.add_argument('--stage_update_num', default=3e5, type=float, help='The number of moves until getting the next the step from model')
 	parser.add_argument('--std_k', type=float, default=2.0, help='Std of spring constant. Calculated by a normal distribution in sigmoid. Mean of normal is 0')
 	parser.add_argument('--stop_slide', default=True, action='store_false', help='Stop sliding')
-<<<<<<< HEAD
 	parser.add_argument('--strength', type=float, default=0.35, help='Mean strength of player')
-=======
-	parser.add_argument('--strength', type=float, default=0.15, help='Mean strength of player')
->>>>>>> a1beee81b609d5502958f6d460b810b0e126a3d2
 	parser.add_argument('--terminate_turn', type=int, default=10000, help='The amount of time steps until stopping environment')
 	parser.add_argument('--test', default=False, action='store_true', help='Whether to test model or not')
 	parser.add_argument('--test_env', default=False, action='store_true', help='Test if environment is running properly')
@@ -129,13 +117,8 @@ def game_args_parser():
 	parser.add_argument('--vec_mag_div_constant_frac', type=float, default=1, help='The proportion of the board_size to divide the arrow magnitude by')
 	parser.add_argument('--vec_steps', type=int, default=10, help='The number of steps/resolution of each vector\'s area of effect')
 	parser.add_argument('--vec_width_diff', type=int, default=15, help='The amount by which the vec width changes when pressing up and down on the arrow keys')
-<<<<<<< HEAD
 	parser.add_argument('--vel_diff_coef', type=int, default=0.5, help='The coef to multiplly the velocity difference to get a force')
 	parser.add_argument('--wall_base_vision', type=float, default=4, help='The base vision of walls')
-=======
-	parser.add_argument('--vel_diff_coef', type=int, default=1, help='The coef to multiplly the velocity difference to get a force')
-	parser.add_argument('--wall_base_vision', type=float, default=5, help='The base vision of walls')
->>>>>>> a1beee81b609d5502958f6d460b810b0e126a3d2
 	parser.add_argument('--wall_density', type=float, default=20, help='The density of walls')
 	parser.add_argument('--wall_force', type=float, default=20, help='How much more force cavarly has than the infantry. This is to account for their larger mass.')
 	parser.add_argument('--wall_hp', type=float, default=20, help='How much more hp wall has than the infantry. This is to account for their larger size.')
