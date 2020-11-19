@@ -81,7 +81,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         #Add boundary cause I found that there may not be that much support for keeping stuff within a boundary
         body = pymunk.Body(body_type = pymunk.Body.STATIC)
         body.position = (0,0)
-        wall_size = 4
+        wall_size = 200
         self.lines = [
         pymunk.Segment(body, (-wall_size,-wall_size), (-wall_size, self.board_size[1]+wall_size), wall_size),\
         pymunk.Segment(body, (-wall_size,-wall_size), (self.board_size[0]+wall_size, -wall_size), wall_size),\
@@ -251,6 +251,7 @@ class Set_Board(Setup_Player_Graph):
                 position = self.player_array[i][j].position
                 position = np.asarray(position, dtype=np.float16)
                 position[position > self.board_size[0]-1] =  self.board_size[0]-1
+                position[position < 0] = 0
                 position = position.tolist()
                 self.player_array[i][j].height = self.get_height(*position)
                 self.player_array[i][j].cos = self.cos[int(position[0]), int(position[1])]
@@ -312,6 +313,7 @@ class Get_Sight(Set_Board):
                     position = player.position
                     position = np.asarray(position, dtype=np.float16)
                     position[position > self.board_size[0]-1] =  self.board_size[0]-1
+                    
                     self.obs_full[i, int(position[0]), int(position[1]), 1] = player.hp if i == i2 else 0
                     self.obs_full[i, int(position[0]), int(position[1]), 2] = player.type+1 if i == i2 else 0
                     self.obs_full[i, int(position[0]), int(position[1]), 3] = player.hp if i != i2 else 0
@@ -321,11 +323,21 @@ class Get_Sight(Set_Board):
                     self.obs_full[i, int(position[0]), int(position[1]), 9] = self.attacked_dist[i, player.id]
             #normalize
             self.obs_full[i, np.abs(self.obs_full[i]) < epsilon] = 0
-            self.obs_full[i, ..., 1:5][..., ::2] /= self.hp*(1+self.rand_prop)
-            self.obs_full[i, ..., 2:5][..., ::2] /= self.num_types + 1
-            self.obs_full[i, ..., 5:9] /= self.max_speed
-            self.obs_full[i, ..., 9] /= self.strength*self.max_players*(1-1/self.sides)*self.attack_div_frac
-            self.obs_full [i, ..., 1:] *= 255
+            # print(f"max hp: {self.obs_full[i, ..., 1:4][..., ::2].max()} hp: {self.hp} hp mean: {self.obs_full[i, ..., 1:4][..., ::2][self.obs_full[i, ..., 1:4][..., ::2]>0.5].mean()} hp std: {self.hp*(1+3*self.cap_prop)}")
+            # print(f"max type: {self.obs_full[i, ..., 2:5][..., ::2].max()} max expected type: {self.num_types+1}")
+            self.obs_full[i, ..., 1:4][..., ::2] /= (self.obs_full[i, ..., 1:4][..., ::2].max()+1e-3)
+            self.obs_full[i, ..., 2:5][..., ::2] /= (self.obs_full[i, ..., 2:5][..., ::2].max()+1e-3)
+            self.obs_full[i, ..., 5:9] /= (self.obs_full[i, ..., 5:9].max()+1e-3)
+            self.obs_full[i, ..., 9] /= (self.obs_full[i, ..., 9].max()+1e-3)
+            self.obs_full = self.obs_full.astype(np.float32)
+            try:
+                self.obs_full [i, ..., 1:] *= 255
+            except Exception as e:
+                print(e)
+                print(self.obs_full.max())
+            # print(f"side {i}")
+            # for k in range(10):
+            #     print(f"index: {k} mean: {self.obs_full[i, ..., k].mean()} std: {self.obs_full[i, ..., k].astype(np.float32).std()} max: {self.obs_full[i, ..., k].max()} min {self.obs_full[i, ..., k].mean()}")
             #as in cnn, it's divided by 255
             """
             def print_obs_full_stats(m):
@@ -336,4 +348,4 @@ class Get_Sight(Set_Board):
                 print_obs_full_stats(m)
             """
             resized_obs = cv2.resize(self.obs_full[i, ..., 1:].astype(np.float32), (self.obs_board_size, self.obs_board_size))
-            self.obs[i, ..., 1:] = resized_obs.copy().astype(np.float16)
+            self.obs[i, ..., 1:] = resized_obs.copy().astype(np.float32)

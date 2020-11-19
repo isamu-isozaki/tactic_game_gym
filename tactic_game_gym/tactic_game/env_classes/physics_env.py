@@ -44,10 +44,10 @@ class Setup_Rotate_Force(Setup_Swarm_Intelligence, Setup_Springs):
         if force[0] != 0 or force[1] != 0:
             force_mag = np.linalg.norm(force/1000)*1000
         force_angles = None
-        if force_mag == 0:
+        if force_mag == 0 or np.abs(force_mag) < 0.00001:
             force_angles = np.ones([2])/np.sqrt(2)
         else:
-            force_angles = force/force_mag
+            force_angles = force/(force_mag+0.00001)
         try:
             
             force_3d_unit = np.asarray([force_angles[0]*player.cos,\

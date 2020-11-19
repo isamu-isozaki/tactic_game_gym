@@ -45,22 +45,26 @@ class Map_Env(Args_Env):
         coordinates = cv2.resize(coordinates.astype(np.float32), tuple(self.board_size), interpolation=cv2.INTER_CUBIC).astype(np.float16)
         return coordinates
     def get_height(self, x, y):
-        x1 = int(x)
-        y1 = int(y)
-        x1 = self.board_size[0]-1 if x1 >= self.board_size[0] else x1
-        y1 = self.board_size[1]-1 if y1 >= self.board_size[1] else y1
+        try:
+            x1 = int(x)
+            y1 = int(y)
+            x1 = self.board_size[0]-1 if x1 >= self.board_size[0] else x1
+            y1 = self.board_size[1]-1 if y1 >= self.board_size[1] else y1
 
-        x2 = x1 + 1
-        y2 = y1 + 1
-        x2 = x1 if x2 >= self.board_size[0] else x2
-        y2 = y1 if y2 >= self.board_size[1] else y2
-        h0 = self.map[x1, y1]
-        h1 = self.map[x2, y1]
-        h2 = self.map[x1, y2]
-        h3 = self.map[x2, y2]
-        if x1 == x2 and y2 == y1:
-            return h0
-        x_ = x - x1
-        y_ = y - y1
-        h = ((h0*(1-x_)+h1*x_)*(1-y_)+(h2*(1-x_)+h3*x_)*y_)
-        return h
+            x2 = x1 + 1
+            y2 = y1 + 1
+            x2 = x1 if x2 >= self.board_size[0] else x2
+            y2 = y1 if y2 >= self.board_size[1] else y2
+            h0 = self.map[x1, y1]
+            h1 = self.map[x2, y1]
+            h2 = self.map[x1, y2]
+            h3 = self.map[x2, y2]
+            if x1 == x2 and y2 == y1:
+                return h0
+            x_ = x - x1
+            y_ = y - y1
+            h = ((h0*(1-x_)+h1*x_)*(1-y_)+(h2*(1-x_)+h3*x_)*y_)
+            return h
+        except Exception as e:
+            print(e)
+            return 0

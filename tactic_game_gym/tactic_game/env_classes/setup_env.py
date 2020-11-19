@@ -60,7 +60,8 @@ class Setup_Var_Init(Map_Env):
         self.obs = np.zeros([self.sides] + list(obs_shape), dtype=np.float16)
         self.obs_full = np.zeros([self.sides] + list(obs_full_shape), dtype=np.float16)
         for i in range(self.sides):
-            self.obs_full[i, ...,  0] = self.map.copy()* 255
+            self.obs_full[i, ...,  0] = (self.map.copy()-self.map.mean())
+            self.obs_full[i, ..., 0] *= 255/self.obs_full[i, ..., 0].max()
             self.obs[i, ...,  0] = cv2.resize(self.map.copy().astype(np.float32), (self.obs_board_size, self.obs_board_size)).astype(np.float16)* 255
         self.dead = np.zeros(self.sides, dtype=np.float16)#the amount that died during the current time step for all sides
         self.rewards = np.zeros(self.sides, dtype=np.float16)#the amount that died for other sides

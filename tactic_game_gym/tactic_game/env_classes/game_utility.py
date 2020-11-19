@@ -95,6 +95,20 @@ class Mobilize(Move):
 class Attack(Mobilize):
     def __init__(self, **kwargs):
         Mobilize.__init__(self, **kwargs)
+    def remove_glitched_players(self):
+        for i in range(self.sides):
+            for j in range(self.players_per_side[i]):
+                player = self.player_array[i][j]
+                if player.alive:
+                    pos = player.position
+                    if (0<= int(pos[0]) <= self.board_size[0]) and (0<= int(pos[1]) <= self.board_size[1]):
+                        continue
+                    else:
+                        print(f"Glitched player at {pos}")
+                        self.player_array[i][j].damage(player.hp)
+                        self.player_array[i][j].alive = False
+                        self.remaining_players[i] -= 1
+                        continue
     def attack(self, epsilon=1e-5):
         # Change attack to constant size
         INF = 10**5
@@ -238,6 +252,7 @@ class Attack(Mobilize):
             self.hard_coded_rewards['seen'][i] += total_seen - 2*temp_rewards['seen'][i]#how many more were seen on your side
             #Overall, becomes a zero sum game
             #self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
+        self.remove_glitched_players()
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if self.player_array[i][j].alive and self.player_array[i][j].id in alive:
@@ -245,6 +260,8 @@ class Attack(Mobilize):
         for id in alive:#all dead
             self.space.remove(self.balls[id], self.balls[id].body)
             self.current_balls.remove(self.balls[id])
+
+
 
         self.set_board()
         self.attack_turn += 1
