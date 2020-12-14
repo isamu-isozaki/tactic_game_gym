@@ -16,7 +16,7 @@ class Map_Env(Args_Env):
         self.beautiful_map = self.map.copy()
         self.beautiful_map = self.beautiful_map[:, ::-1]
         self.beautiful_map -= self.beautiful_map.min()
-        self.beautiful_map *= 255/self.beautiful_map.max()
+        self.beautiful_map *= 255/(self.beautiful_map.max()+1e-2)
         self.beautiful_map = cv2.applyColorMap(self.beautiful_map.astype(np.uint8), cv2.COLORMAP_VIRIDIS)
         self.beautiful_map = cv2.cvtColor(self.beautiful_map, cv2.COLOR_RGB2BGR)
         self.beautiful_output = np.copy(self.beautiful_map)
@@ -39,10 +39,10 @@ class Map_Env(Args_Env):
 
     def get_map(self):
         coordinates = diamond_square.DiamondSquare(self.map_board_size)
-        coordinates = np.asarray(coordinates, dtype=np.float16)
+        coordinates = np.asarray(coordinates, dtype=np.float32)
         coordinates = np.reshape(coordinates, [self.map_board_size, self.map_board_size]+ [3])
         coordinates = coordinates[:,:,-1]/256.0
-        coordinates = cv2.resize(coordinates.astype(np.float32), tuple(self.board_size), interpolation=cv2.INTER_CUBIC).astype(np.float16)
+        coordinates = cv2.resize(coordinates.astype(np.float32), tuple(self.board_size), interpolation=cv2.INTER_CUBIC).astype(np.float32)
         return coordinates
     def get_height(self, x, y):
         try:

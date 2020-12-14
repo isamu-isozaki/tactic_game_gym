@@ -52,24 +52,26 @@ class Setup_Var_Init(Map_Env):
             print(f"You are side {self.interact_side}")
 
         #numpy arrays below
-        self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3], dtype=np.float16)
-        self.finished_sides = np.zeros(self.sides, dtype=np.float16)
-        self.move_board = np.zeros([self.sides] + [self.num_types] + self.board_size+[2], dtype=np.float16)
-        obs_shape = (self.obs_board_size, self.obs_board_size, 1+2*2+2*2+1)
-        obs_full_shape  = (*self.board_size, 1+2*2+2*2+1)
-        self.obs = np.zeros([self.sides] + list(obs_shape), dtype=np.float16)
-        self.obs_full = np.zeros([self.sides] + list(obs_full_shape), dtype=np.float16)
-        for i in range(self.sides):
-            self.obs_full[i, ...,  0] = (self.map.copy()-self.map.mean())
-            self.obs_full[i, ..., 0] *= 255/self.obs_full[i, ..., 0].max()
-            self.obs[i, ...,  0] = cv2.resize(self.map.copy().astype(np.float32), (self.obs_board_size, self.obs_board_size)).astype(np.float16)* 255
-        self.dead = np.zeros(self.sides, dtype=np.float16)#the amount that died during the current time step for all sides
-        self.rewards = np.zeros(self.sides, dtype=np.float16)#the amount that died for other sides
-        self.hard_coded_rewards = {'death_offset': np.zeros(self.sides, dtype=np.float16), 'damage': np.zeros(self.sides, dtype=np.float16), 'seen': np.zeros(self.sides, dtype=np.float16)}
+        self.render_output = np.zeros([self.sides, self.obs_board_size, self.obs_board_size, 3], dtype=np.float32)
+        self.finished_sides = np.zeros(self.sides, dtype=np.float32)
+        self.move_board = np.zeros([self.sides] + [self.num_types] + self.board_size+[2], dtype=np.float32)
+        # obs_shape = (self.obs_board_size, self.obs_board_size, 1+2)
+        # obs_full_shape  = (*self.board_size, 1+2)
+        obs_shape = (self.obs_board_size, self.obs_board_size, 2*3)
+        obs_full_shape  = (*self.board_size, 2*3)
+        self.obs = np.zeros([self.sides] + list(obs_shape), dtype=np.float32)
+        self.obs_full = np.zeros([self.sides] + list(obs_full_shape), dtype=np.float32)
+        # for i in range(self.sides):
+        #     self.obs_full[i, ...,  0] = (self.map.copy()-self.map.mean())
+        #     self.obs_full[i, ..., 0] *= 255/self.obs_full[i, ..., 0].max()
+        #     self.obs[i, ...,  0] = cv2.resize(self.obs_full[i, ..., 0].astype(np.float32), (self.obs_board_size, self.obs_board_size)).astype(np.float32)
+        self.dead = np.zeros(self.sides, dtype=np.float32)#the amount that died during the current time step for all sides
+        self.rewards = np.zeros(self.sides, dtype=np.float32)#the amount that died for other sides
+        self.hard_coded_rewards = {'death_offset': np.zeros(self.sides, dtype=np.float32), 'damage': np.zeros(self.sides, dtype=np.float32), 'seen': np.zeros(self.sides, dtype=np.float32)}
 
         #Setting up observation and action space
-        self.action_space = spaces.Box(low=-1.0, high=1.0, shape=[self.act_board_size*self.act_board_size*self.num_types*2], dtype=np.float32)
-        self.action = np.zeros([self.sides, self.act_board_size, self.act_board_size, self.num_types, 2], dtype=np.float16)
+        self.action_space = spaces.MultiDiscrete([5 for _ in range(self.act_board_size*self.act_board_size*self.num_types)])
+        self.action = np.zeros([self.sides, self.act_board_size, self.act_board_size, self.num_types, 2], dtype=np.float32)
         #1st screen: map(1), 2nd:hp(2) + 2*velocity(2), 3rd attack boards(1) 2 you or the enemy
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=obs_shape, dtype=np.float32)
 
@@ -83,7 +85,7 @@ class Set_Stats(Setup_Var_Init):
             board_height = self.board_size[0]
         width = (board_width)// self.sides
         players_per_side = [1/self.sides for i in range(self.sides)]
-        players_per_side = np.asarray(players_per_side, dtype=np.float16)
+        players_per_side = np.asarray(players_per_side, dtype=np.float32)
         players_per_side /= players_per_side.sum()
         players_per_side *= self.max_players
         players_per_side = players_per_side[::-1]
@@ -143,8 +145,8 @@ class Generate_Players(Set_Stats):
         self.remaining_players = [len(self.player_array[i]) for i in range(self.sides)]
         self.players_per_side = np.copy(self.remaining_players)#contains the original players per side
         self.player_num = player_id#number of players+2
-        self.player_forces = np.zeros([self.player_num], dtype=np.float16)
-        self.player_sides = np.zeros([self.player_num], dtype=np.float16)
+        self.player_forces = np.zeros([self.player_num], dtype=np.float32)
+        self.player_sides = np.zeros([self.player_num], dtype=np.float32)
         self.r_as = np.ones([self.player_num])
         self.player_type_mask = np.zeros(self.player_num, dtype=np.uint8)
         for i in range(self.sides):
@@ -160,13 +162,13 @@ class Generate_Players(Set_Stats):
 class Post_Player_Setup(Generate_Players):
     def __init__(self, **kwargs):
         Generate_Players.__init__(self, **kwargs)
-        self.attacked = np.zeros([self.sides, self.player_num], dtype=np.float16)#Damaged inflicted to side i
-        self.attacked_dist = np.zeros([self.sides, self.player_num], dtype=np.float16)#Damage applied at location of players from side i include friendly fire
-        self.can_see = np.zeros([self.sides, self.player_num], dtype=np.float16)
-        self.web_mat = np.zeros([self.player_num, 2*self.num_subs-1, 2], dtype=np.float16)
-        self.mag_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float16)
-        self.k_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float16)
-        self.m_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float16)
+        self.attacked = np.zeros([self.sides, self.player_num], dtype=np.float32)#Damaged inflicted to side i
+        self.attacked_dist = np.zeros([self.sides, self.player_num], dtype=np.float32)#Damage applied at location of players from side i include friendly fire
+        self.can_see = np.zeros([self.sides, self.player_num], dtype=np.float32)
+        self.web_mat = np.zeros([self.player_num, 2*self.num_subs-1, 2], dtype=np.float32)
+        self.mag_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float32)
+        self.k_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float32)
+        self.m_mat = np.zeros([self.player_num, 2*self.num_subs-1], dtype=np.float32)
         
 
 class Set_Player_Locs(Post_Player_Setup):
@@ -203,12 +205,12 @@ class Set_Player_Locs(Post_Player_Setup):
                     if self.player_array[i//self.num_types][j].type != current_type:
                         continue
                     k += 1
-                    location = np.asarray([width*i + locations[k] // board_height, locations[k] % board_height], dtype=np.float16)
+                    location = np.asarray([width*i + locations[k] // board_height, locations[k] % board_height], dtype=np.float32)
                     if self.flip:
                         location[0] = board_width - location[0]
 
                     if self.rotation:
-                        location = np.asarray([locations[k] % board_height, width*i + locations[k] // board_height], dtype=np.float16)
+                        location = np.asarray([locations[k] % board_height, width*i + locations[k] // board_height], dtype=np.float32)
                         if self.flip:
                             location[1] = board_width - location[1]
                     self.player_array[i//self.num_types][j].set_position(location)

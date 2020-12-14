@@ -40,7 +40,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
 
 
         self.lines = []
-        self.masses = np.zeros(self.player_num, dtype=np.float16)
+        self.masses = np.zeros(self.player_num, dtype=np.float32)
         mass = self.mass
         radius = mass**(1/3.)
         moment = pymunk.moment_for_circle(mass, 0, radius)
@@ -93,8 +93,8 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         self.started = True
     def interact_move(self, start_pos, end_pos, epsilon=1e-10):
         steps = self.vec_steps
-        start_pos = np.array(self.switch_to_pymunk(start_pos), dtype=np.float16)
-        end_pos = np.array(self.switch_to_pymunk(end_pos), dtype=np.float16)
+        start_pos = np.array(self.switch_to_pymunk(start_pos), dtype=np.float32)
+        end_pos = np.array(self.switch_to_pymunk(end_pos), dtype=np.float32)
         movement = end_pos-start_pos
         mag_div = self.board_size*self.vec_mag_div_constant_frac
         movement /= mag_div
@@ -103,11 +103,11 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
             if mag > self.player_force_prop*np.sqrt(2):
                 movement *= float(self.player_force_prop*np.sqrt(2))/mag
         size = self.vec_width#change with scrool or up and down arrow
-        x = np.zeros(self.board_size[0], dtype=np.float16)
-        y = np.zeros(self.board_size[0], dtype=np.float16)
+        x = np.zeros(self.board_size[0], dtype=np.float32)
+        y = np.zeros(self.board_size[0], dtype=np.float32)
         deduct_const = size // steps
         pos = start_pos
-        pos =  np.asarray(pos, dtype=np.float16)
+        pos =  np.asarray(pos, dtype=np.float32)
         while steps > 0:
             start = pos - size
             start[start < 0] = 0
@@ -195,8 +195,8 @@ class Setup_Player_Graph(Setup_Pygame_Pymunk):
         self.player_array =[sort_array(self.player_array[i], aptitude_indices[i]) for i in range(self.sides)]
 
         #Reset ids
-        self.player_rank_id = np.zeros(self.player_num, dtype=np.float16)
-        self.player_side = np.zeros(self.player_num, dtype=np.float16)
+        self.player_rank_id = np.zeros(self.player_num, dtype=np.float32)
+        self.player_side = np.zeros(self.player_num, dtype=np.float32)
         k = 0
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
@@ -214,7 +214,7 @@ class Setup_Player_Graph(Setup_Pygame_Pymunk):
                     if self.type_to_index[self.player_array[i][k].type] == j:
                         type_array.append(self.player_array[i][k])
                         id_types.append(int(self.player_array[i][k].id))
-                id_types = np.asarray(id_types, dtype=np.float16)
+                id_types = np.asarray(id_types, dtype=np.float32)
                 player_side_array.append(type_array)
                 id_side_array.append(id_types)
             self.player_type_array.append(player_side_array)
@@ -245,11 +245,11 @@ class Set_Board(Setup_Player_Graph):
             print(f"Finished setting up board: {time.time()-self.start}")
     def set_board(self):
         #The board is saved in a fashion where the number of channels is detemined by the number of sides
-        self.board_sight = np.zeros([self.player_num, 18], dtype=np.float16)#holds all x position, y position, rank, side, alive
+        self.board_sight = np.zeros([self.player_num, 18], dtype=np.float32)#holds all x position, y position, rank, side, alive
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 position = self.player_array[i][j].position
-                position = np.asarray(position, dtype=np.float16)
+                position = np.asarray(position, dtype=np.float32)
                 position[position > self.board_size[0]-1] =  self.board_size[0]-1
                 position[position < 0] = 0
                 position = position.tolist()
@@ -257,8 +257,9 @@ class Set_Board(Setup_Player_Graph):
                 self.player_array[i][j].cos = self.cos[int(position[0]), int(position[1])]
                 self.player_array[i][j].sin = self.sin[int(position[0]), int(position[1])]
                 player = self.player_array[i][j]
-                k = player.id      
-                self.board_sight[k, :2] = player.position
+                k = player.id     
+                
+                self.board_sight[k, :2] = position
                 self.board_sight[k, 2:4] = player.velocity
                 self.board_sight[k, 4] = player.rank
                 self.board_sight[k, 5] = player.side
@@ -303,7 +304,13 @@ class Get_Sight(Set_Board):
         strengths = self.board_sight[living, 6].copy()
         hps = self.board_sight[living, 7].copy()
         mass = self.board_sight[living, 8].copy()
-        self.obs_full[..., 1:] = 0
+        # self.obs_full[..., 1:] = 0
+        self.obs_full[...] = 0
+        def paint_canvas(canvas, index, position, value, radius=2):
+            start = [position[0]-radius, position[1]-radius]
+            for i in range(radius*2):
+                for j in range(radius*2):
+                    canvas[min(start[0]+i, canvas.shape[0]-1), min(start[1]+j, canvas.shape[1]-1), index] += value
         for i in range(self.sides):
             for i2 in range(self.sides):
                 for j in range(self.players_per_side[i2]):
@@ -311,33 +318,49 @@ class Get_Sight(Set_Board):
                     if not player.alive or not (self.full_view or self.can_see[i, player.id]):
                         continue
                     position = player.position
-                    position = np.asarray(position, dtype=np.float16)
+                    position = np.asarray(position, dtype=np.float32)
                     position[position > self.board_size[0]-1] =  self.board_size[0]-1
-                    
-                    self.obs_full[i, int(position[0]), int(position[1]), 1] = player.hp if i == i2 else 0
-                    self.obs_full[i, int(position[0]), int(position[1]), 2] = player.type+1 if i == i2 else 0
-                    self.obs_full[i, int(position[0]), int(position[1]), 3] = player.hp if i != i2 else 0
-                    self.obs_full[i, int(position[0]), int(position[1]), 4] = player.type+1 if i != i2 else 0
-                    self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i == i2 else [0,0]
-                    self.obs_full[i, int(position[0]), int(position[1]), 7:9] = player.velocity.copy() if i != i2 else [0,0]
-                    self.obs_full[i, int(position[0]), int(position[1]), 9] = self.attacked_dist[i, player.id]
+                    paint_canvas(self.obs_full[i], 0, [int(position[0]), int(position[1])], (player.hp if i == i2 else 0))
+                    paint_canvas(self.obs_full[i], 1, [int(position[0]), int(position[1])], (player.strength if i == i2 else 0))
+                    paint_canvas(self.obs_full[i], 2, [int(position[0]), int(position[1])], (player.mass if i == i2 else 0))
+                    #self.obs_full[i, int(position[0]), int(position[1]), 2] = player.type+1 if i == i2 else 0
+                    paint_canvas(self.obs_full[i], 3, [int(position[0]), int(position[1])], (player.hp if i != i2 else 0))
+                    paint_canvas(self.obs_full[i], 4, [int(position[0]), int(position[1])], (player.strength if i != i2 else 0))
+                    paint_canvas(self.obs_full[i], 5, [int(position[0]), int(position[1])], (player.mass if i != i2 else 0))
+
+                    #self.obs_full[i, int(position[0]), int(position[1]), 4] = player.type+1 if i != i2 else 0
+                    # self.obs_full[i, int(position[0]), int(position[1]), 5:7] = player.velocity.copy() if i == i2 else [0,0]
+                    # self.obs_full[i, int(position[0]), int(position[1]), 7:9] = player.velocity.copy() if i != i2 else [0,0]
+                    # self.obs_full[i, int(position[0]), int(position[1]), 9] = self.attacked_dist[i, player.id]
+            #0,5,6,7,8 has inf sometimes
             #normalize
             self.obs_full[i, np.abs(self.obs_full[i]) < epsilon] = 0
             # print(f"max hp: {self.obs_full[i, ..., 1:4][..., ::2].max()} hp: {self.hp} hp mean: {self.obs_full[i, ..., 1:4][..., ::2][self.obs_full[i, ..., 1:4][..., ::2]>0.5].mean()} hp std: {self.hp*(1+3*self.cap_prop)}")
             # print(f"max type: {self.obs_full[i, ..., 2:5][..., ::2].max()} max expected type: {self.num_types+1}")
-            self.obs_full[i, ..., 1:4][..., ::2] /= (self.obs_full[i, ..., 1:4][..., ::2].max()+1e-3)
-            self.obs_full[i, ..., 2:5][..., ::2] /= (self.obs_full[i, ..., 2:5][..., ::2].max()+1e-3)
-            self.obs_full[i, ..., 5:9] /= (self.obs_full[i, ..., 5:9].max()+1e-3)
-            self.obs_full[i, ..., 9] /= (self.obs_full[i, ..., 9].max()+1e-3)
+            #self.obs_full[i, ..., 1:4][..., ::2] /= (self.obs_full[i, ..., 1:4][..., ::2].max()+1e-3)
+            #self.obs_full[i, ..., 2:5][..., ::2] /= (self.obs_full[i, ..., 2:5][..., ::2].max()+1e-3)
+            self.obs_full[i, ..., 0::3]/= (self.obs_full[i, ..., 0::3].max()+1e-5)
+            self.obs_full[i, ..., 1::3]/= (self.obs_full[i, ..., 1::3].max()+1e-5)
+            self.obs_full[i, ..., 2::3]/= (self.obs_full[i, ..., 2::3].max()+1e-5)
+
+
+            # self.obs_full[i, ..., 5:9] /= (self.obs_full[i, ..., 5:9].max()+1e-3)
+            # self.obs_full[i, ..., 9] /= (self.obs_full[i, ..., 9].max()+1e-3)
             self.obs_full = self.obs_full.astype(np.float32)
+            import matplotlib.pyplot as plt
+            
             try:
-                self.obs_full [i, ..., 1:] *= 255
+                # self.obs_full [i, ..., 1:] *= 255
+                self.obs_full[i] *= 255
             except Exception as e:
                 print(e)
                 print(self.obs_full.max())
-            # print(f"side {i}")
-            # for k in range(10):
-            #     print(f"index: {k} mean: {self.obs_full[i, ..., k].mean()} std: {self.obs_full[i, ..., k].astype(np.float32).std()} max: {self.obs_full[i, ..., k].max()} min {self.obs_full[i, ..., k].mean()}")
+            # for j in range(6):
+            #     print(self.obs_full[i,...,j].max())
+            #     plt.imshow(self.obs_full[i,...,j])
+            #     plt.show()
+            #     import time
+            #     time.sleep(100)
             #as in cnn, it's divided by 255
             """
             def print_obs_full_stats(m):
@@ -347,5 +370,11 @@ class Get_Sight(Set_Board):
             for m in range(8):
                 print_obs_full_stats(m)
             """
-            resized_obs = cv2.resize(self.obs_full[i, ..., 1:].astype(np.float32), (self.obs_board_size, self.obs_board_size))
-            self.obs[i, ..., 1:] = resized_obs.copy().astype(np.float32)
+            # resized_obs = cv2.resize(self.obs_full[i, ..., 1:].astype(np.float32), (self.obs_board_size, self.obs_board_size))
+            # self.obs[i, ..., 1:] = resized_obs.copy().astype(np.float32)
+            resized_obs = cv2.resize(self.obs_full[i].astype(np.float32), (self.obs_board_size, self.obs_board_size))
+            self.obs[i] = resized_obs.copy().astype(np.float32)
+            self.obs = (self.obs - self.obs.mean())/(self.obs.std()+1e-2)
+            # print(f"side {i}")
+            # for k in range(10):
+            #     print(f"resized index: {k} has inf: {np.isinf(np.sum(self.obs[i, ..., k]))} has nan: {np.isnan(np.sum(self.obs[i, ..., k]))} mean: {self.obs[i, ..., k].mean()} std: {self.obs[i, ..., k].astype(np.float32).std()} max: {self.obs[i, ..., k].max()} min {self.obs[i, ..., k].mean()}")

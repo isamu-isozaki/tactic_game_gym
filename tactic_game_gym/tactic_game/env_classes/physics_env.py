@@ -8,7 +8,7 @@ class Setup_Drag_Force(Setup_Swarm_Intelligence, Setup_Springs):
         Setup_Swarm_Intelligence.__init__(self, **kwargs)
     def get_drag(self, player, force):
         if self.get_height(*player.position) != 0:
-            return np.asarray([0,0], dtype=np.float16)
+            return np.asarray([0,0], dtype=np.float32)
         above_limit = np.abs(force[np.abs(force) > self.drag_force_prop])
         if above_limit.shape[0] is not 0:
             force /= above_limit.max()
@@ -52,7 +52,7 @@ class Setup_Rotate_Force(Setup_Swarm_Intelligence, Setup_Springs):
             
             force_3d_unit = np.asarray([force_angles[0]*player.cos,\
              force_angles[1]*player.cos,\
-            z], dtype=np.float16)
+            z], dtype=np.float32)
         except Exception as e:
             if self.log:
                 print(f"{e}. force angles: {force_angles}, force: {force}")
