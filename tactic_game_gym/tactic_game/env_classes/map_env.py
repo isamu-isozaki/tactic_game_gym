@@ -16,7 +16,7 @@ class Map_Env(Args_Env):
         self.beautiful_map = self.map.copy()
         self.beautiful_map = self.beautiful_map[:, ::-1]
         self.beautiful_map -= self.beautiful_map.min()
-        self.beautiful_map *= 255/self.beautiful_map.max()
+        self.beautiful_map *= 255/(self.beautiful_map.max()+1e-2)
         self.beautiful_map = cv2.applyColorMap(self.beautiful_map.astype(np.uint8), cv2.COLORMAP_VIRIDIS)
         self.beautiful_map = cv2.cvtColor(self.beautiful_map, cv2.COLOR_RGB2BGR)
         self.beautiful_output = np.copy(self.beautiful_map)
@@ -39,28 +39,32 @@ class Map_Env(Args_Env):
 
     def get_map(self):
         coordinates = diamond_square.DiamondSquare(self.map_board_size)
-        coordinates = np.asarray(coordinates, dtype=np.float16)
+        coordinates = np.asarray(coordinates, dtype=np.float32)
         coordinates = np.reshape(coordinates, [self.map_board_size, self.map_board_size]+ [3])
         coordinates = coordinates[:,:,-1]/256.0
-        coordinates = cv2.resize(coordinates.astype(np.float32), tuple(self.board_size), interpolation=cv2.INTER_CUBIC).astype(np.float16)
+        coordinates = cv2.resize(coordinates.astype(np.float32), tuple(self.board_size), interpolation=cv2.INTER_CUBIC).astype(np.float32)
         return coordinates
     def get_height(self, x, y):
-        x1 = int(x)
-        y1 = int(y)
-        x1 = self.board_size[0]-1 if x1 >= self.board_size[0] else x1
-        y1 = self.board_size[1]-1 if y1 >= self.board_size[1] else y1
+        try:
+            x1 = int(x)
+            y1 = int(y)
+            x1 = self.board_size[0]-1 if x1 >= self.board_size[0] else x1
+            y1 = self.board_size[1]-1 if y1 >= self.board_size[1] else y1
 
-        x2 = x1 + 1
-        y2 = y1 + 1
-        x2 = x1 if x2 >= self.board_size[0] else x2
-        y2 = y1 if y2 >= self.board_size[1] else y2
-        h0 = self.map[x1, y1]
-        h1 = self.map[x2, y1]
-        h2 = self.map[x1, y2]
-        h3 = self.map[x2, y2]
-        if x1 == x2 and y2 == y1:
-            return h0
-        x_ = x - x1
-        y_ = y - y1
-        h = ((h0*(1-x_)+h1*x_)*(1-y_)+(h2*(1-x_)+h3*x_)*y_)
-        return h
+            x2 = x1 + 1
+            y2 = y1 + 1
+            x2 = x1 if x2 >= self.board_size[0] else x2
+            y2 = y1 if y2 >= self.board_size[1] else y2
+            h0 = self.map[x1, y1]
+            h1 = self.map[x2, y1]
+            h2 = self.map[x1, y2]
+            h3 = self.map[x2, y2]
+            if x1 == x2 and y2 == y1:
+                return h0
+            x_ = x - x1
+            y_ = y - y1
+            h = ((h0*(1-x_)+h1*x_)*(1-y_)+(h2*(1-x_)+h3*x_)*y_)
+            return h
+        except Exception as e:
+            print(e)
+            return 0

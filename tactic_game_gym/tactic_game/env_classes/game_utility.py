@@ -10,8 +10,9 @@ class Move(Setup_Rotate_Force):
         Setup_Rotate_Force.__init__(self, **kwargs)
     def move(self):
         living = self.get_alive_mask() == 1
-        forces = self.board_sight[living, 13:15].copy()
-        forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
+        final_vel = self.board_sight[living, 13:15].copy()
+        final_vel *= self.max_speed#For now only one max speed
+        #forces = np.einsum("i..., i->i...", forces, self.player_forces[living])
 
         #drag_forces = -np.einsum("i,i...->i...", self.vel_mags[is_drag], self.board_sight[is_drag, 2:4])
         #total_mag = (self.player_force*self.player_force_prop+self.align_force_prop+self.cohesion_force_prop)
@@ -19,6 +20,7 @@ class Move(Setup_Rotate_Force):
         #forces -= self.board_sight[living, 2:4]*total_mag/(self.max_speed*self.damping_start)
         if self.use_boid:
             forces += self.get_boids(living)
+        forces = (final_vel - self.board_sight[living, 2:4])*self.vel_diff_coef
 
         z = np.abs(self.board_sight[living, 11].copy())#z index of rotated 3d array
         sign = np.sign(np.einsum("...i, ...i->...", forces, self.board_sight[living, 15:17]))
@@ -32,8 +34,8 @@ class Move(Setup_Rotate_Force):
                 force = forces[k]
                 if self.use_spring:
                     force += self.get_spring(player)
-                
-                force = self.rotate_force(player, force, z[k])
+                #Return later
+                #force = self.rotate_force(player, force, z[k])
 
                 try:
                     self.player_array[i][j].apply_force(force, self.current_balls[k])
@@ -49,18 +51,20 @@ class Move(Setup_Rotate_Force):
                     self.vel_mags[id] = 0
                     continue
                 position = self.current_balls[k].body._get_position()
-                velocity = np.asarray(self.current_balls[k].body._get_velocity(), dtype=np.float16)
                 speed = self.current_balls[k].body.velocity.length
-                scale = 1
+                velocity = np.asarray(self.current_balls[k].body._get_velocity(), dtype=np.float32)
                 if speed > self.max_speed:
-                    scale = self.max_speed/speed
-                    self.current_balls[k].body._set_velocity((scale*velocity).tolist())
+                    if speed == np.inf:
+                        print(f"speed for player {i} {j} is infinity")
+                    velocity /= speed
+                    velocity *= self.max_speed
+                    self.current_balls[k].body._set_velocity(velocity.tolist())
                     speed = self.max_speed
                 self.player_array[i][j].speed = speed
                 self.vel_mags[id] = speed
-                self.player_array[i][j].vel = [self.player_array[i][j].position, self.player_array[i][j].position+scale*velocity]
-                self.player_array[i][j].position = np.array(position, dtype=np.float16)
-                self.player_array[i][j].velocity = scale*velocity
+                self.player_array[i][j].vel = [self.player_array[i][j].position, self.player_array[i][j].position+velocity]
+                self.player_array[i][j].position = np.array(position, dtype=np.float32)
+                self.player_array[i][j].velocity = velocity
                 k += 1
 
 
@@ -79,7 +83,7 @@ class Mobilize(Move):
         # 	if not os.path.exists( self.base_directory   + "/animation"):
         # 			os.makedirs( self.base_directory   + "/animation")
         # 	folders = os.listdir(self.base_directory + "/animation")
-        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float32)
         for t in tqdm(itertools.count()):
             try:
                 for event in pygame.event.get():
@@ -98,7 +102,22 @@ class Mobilize(Move):
 class Attack(Mobilize):
     def __init__(self, **kwargs):
         Mobilize.__init__(self, **kwargs)
+    def remove_glitched_players(self):
+        for i in range(self.sides):
+            for j in range(self.players_per_side[i]):
+                player = self.player_array[i][j]
+                if player.alive:
+                    pos = player.position
+                    if (0<= int(pos[0]) <= self.board_size[0]) and (0<= int(pos[1]) <= self.board_size[1]):
+                        continue
+                    else:
+                        print(f"Glitched player at {pos}")
+                        self.player_array[i][j].damage(player.hp)
+                        self.player_array[i][j].alive = False
+                        self.remaining_players[i] -= 1
+                        continue
     def attack(self, epsilon=1e-5):
+        # Change attack to constant size
         INF = 10**5
         rotation = True
         prop_side = self.prop_side
@@ -117,7 +136,7 @@ class Attack(Mobilize):
         positions = positions[living]
         velocities = velocities[living]
         num_players = np.sum(self.remaining_players)
-        attacked = np.zeros(num_players, dtype=np.float16)
+        attacked = np.zeros(num_players, dtype=np.float32)
         mags_temp = mags.copy()
         mags_temp[mags_temp == 0] = 1
         cos_sin = (velocities) / (mags_temp[:, None])
@@ -132,8 +151,9 @@ class Attack(Mobilize):
         Y = np.reshape(-positions[:, 1, None]+y, [num_players, num_players])
         #X[i], Y[i] is the x and y coordinates of all of the players when the ith player is at (0,0)
         XY = np.concatenate([X[..., None], Y[..., None]], axis = 2)
-        attack_range_mags = mags / (self.attrange_div_const*self.max_speed)
-        attack_range_mags[is_archer[living]] = 1/self.attrange_div_const - attack_range_mags[is_archer[living]]#The higher the velocity, the lower the range
+        attack_range_mags = np.ones_like(mags)
+        #ignore archers for now
+        #attack_range_mags[is_archer[living]] *= 
         base_index = 12
         attack_range = self.range_factor*np.einsum("i,i->i",attack_range_mags, self.board_sight[living, base_index])[:, None]#set max value of einsum to 1
         #attack_range = np.ones(num_players) + 10
@@ -213,17 +233,18 @@ class Attack(Mobilize):
             self.attacked[i] = attacked_sum - self.attacked[i]
         k = 0
         temp_rewards = dict(self.hard_coded_rewards)
-        temp_dead = np.zeros(self.sides, dtype=np.float16)
-        temp_rewards['damage'] = np.zeros(self.sides, dtype=np.float16)
-        temp_rewards['seen'] = np.zeros(self.sides, dtype=np.float16)
+        temp_dead = np.zeros(self.sides, dtype=np.float32)
+        temp_rewards['damage'] = np.zeros(self.sides, dtype=np.float32)
+        temp_rewards['seen'] = np.zeros(self.sides, dtype=np.float32)
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if not self.player_array[i][j].alive:
                     continue
+                player_id = self.player_array[i][j].id
                 player_hp = self.player_array[i][j].hp
-                player_alive = self.player_array[i][j].damage(self.attacked[i][k]+self.continue_penalty)
-                temp_rewards['damage'][i] += np.min([self.attacked[i][k], player_hp])
-                temp_rewards['seen'][i] += 1 if self.attacked[i][k] > 0 else 0
+                player_alive = self.player_array[i][j].damage(self.attacked[i][player_id]+self.continue_penalty)
+                temp_rewards['damage'][i] += np.min([self.attacked[i][player_id], player_hp])
+                temp_rewards['seen'][i] += 1 if self.attacked[i][player_id] > 0 else 0
                 if not player_alive:
                     temp_dead[i] += 1
                     self.remaining_players[i] -= 1
@@ -238,6 +259,7 @@ class Attack(Mobilize):
             self.hard_coded_rewards['seen'][i] += total_seen - 2*temp_rewards['seen'][i]#how many more were seen on your side
             #Overall, becomes a zero sum game
             #self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
+        self.remove_glitched_players()
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if self.player_array[i][j].alive and self.player_array[i][j].id in alive:
@@ -246,8 +268,11 @@ class Attack(Mobilize):
             self.space.remove(self.balls[id], self.balls[id].body)
             self.current_balls.remove(self.balls[id])
 
+
+
         self.set_board()
         self.attack_turn += 1
+        #change reward
 class Playable_Game(Attack):
     def __init__(self, **kwargs):
         Attack.__init__(self, **kwargs)
@@ -332,7 +357,7 @@ class Playable_Game(Attack):
         
         
     def init_env(self):
-        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float32)
         self.start_pos = None
     def run_env(self):
         """

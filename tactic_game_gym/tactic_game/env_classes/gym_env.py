@@ -49,7 +49,7 @@ class Gym_Env(Playable_Game):
         for i in range(self.sides):
             infos[i]["episode"]["hard_code_rate"] = hard_code_rate
         return self.obs, self.rewards, dones, infos
-    def step(self, action=None, hard_code_rate=1., play=False):
+    def step(self, action_categorical=None, hard_code_rate=1., play=False):
         if not self.started:
             self.start_game()
         if not self.pygame_initialized and play:
@@ -57,9 +57,25 @@ class Gym_Env(Playable_Game):
             self.init_env()
             self.pygame_initialized = True
         side = self.side
+        def map_category_to_vec(category):
+            assert 0 <= category < 5
+            if category == 0:
+                return np.array([0, 0])
+            elif category == 1:
+                return np.array([1, 0])
+            elif category == 2:
+                return np.array([-1, 0])
+            elif category == 3:
+                return np.array([0, 1])
+            elif category == 4:
+                return np.array([0, -1])
         if not play or side != self.interact_side:
-            action = np.reshape(action, [self.act_board_size, self.act_board_size, self.num_types, 2])
-            action *= self.player_force_prop
+            action_categorical = np.reshape(action_categorical, [self.act_board_size, self.act_board_size, self.num_types])
+            action = np.zeros(shape=[self.act_board_size, self.act_board_size, self.num_types, 2])
+            for i in range(self.act_board_size):
+                for j in range(self.act_board_size):
+                    for k in range(self.num_types):
+                        action[i, j, k] = map_category_to_vec(action_categorical[i, j, k])
             # if self.is_train:
             #     size = self.act_board_size // self.stage
             #     for i in range(self.stage):
@@ -70,9 +86,14 @@ class Gym_Env(Playable_Game):
             #                     action_mean = action_segment.mean()
             #                     action_std = action_segment.std()
             #                     action[size*i:size*(i+1), size*j:size*(j+1), l, k] = np.random.normal(action_mean, action_std)
-            self.action[self.side] = action.copy()
+            
+            #self.action[side, ..., 0] = np.sign(action[..., 1])*np.abs(np.cos(action[..., 0]))
+            # print(f"x min: {self.action[side, ..., 0].min()} max: {self.action[side, ..., 0].max()}")
+            #self.action[side, ..., 1] = np.sin(action[..., 0])
+            # print(f"y min: {self.action[side, ..., 1].min()} max: {self.action[side, ..., 1].max()}")
+            self.action[side] = action
             for i in range(self.num_types):
-                self.move_board[side, i] = cv2.resize(action[:, :, i, :].astype(np.float32), (self.board_size[0], self.board_size[1])).astype(np.float16)
+                self.move_board[side, i] = cv2.resize(self.action[side, :, :, i, :].astype(np.float32), (self.board_size[0], self.board_size[1])).astype(np.float32)
             # if self.save_imgs:
             # 	self.show_board(folder=self.base_directory   + f"/animation/animation_players_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
             # 	self.show_interact_board(folder=self.base_directory   + f"/animation/animation_interact_{len(folders)//2}",save=self.save_animation, step=t, title="Moves of {}".format(self.remaining_players))
@@ -85,14 +106,14 @@ class Gym_Env(Playable_Game):
     def reset(self):
         self.__init__(**self.kwargs)
         self.start_game()
-        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float32)
         self.t = 0
         self.get_sight()
         self.pygame_initialized = False
         return [self.obs]
     def render(self, mode='human', close=False):
         self.render_output = self.beautiful_output.copy()
-        self.arrow_output = np.zeros_like(self.render_output, dtype=np.float16)
+        self.arrow_output = np.zeros_like(self.render_output, dtype=np.float32)
         #self.screen.blit(self.surf, (0,0))
         #draw_width = self.draw_width
         colors = get_n_colors(self.sides*self.num_types)
@@ -109,10 +130,13 @@ class Gym_Env(Playable_Game):
                         y += x
                         x = self.switch_to_pymunk(x)
                         y = self.switch_to_pymunk(y)
+                        self.render_output[i] = np.clip(self.render_output[i], 0, 255)
                         cv2.circle(self.render_output[i], tuple(self.switch_to_pymunk([int(player.position[0]), int(player.position[1])])), int(player.radius) if int(player.radius) > 0 else 1, (int(player.color[0]), int(player.color[1]), int(player.color[2])))
+                        self.render_output[i] = np.clip(self.render_output[i], 0, 255)
                         cv2.line(self.render_output[i], tuple([int(x[0]), int(x[1])]), tuple([int(y[0]), int(y[1])]), (int(player.color[0]), int(player.color[1]), int(player.color[2])))
+                        self.render_output[i] = np.clip(self.render_output[i], 0, 255)
                     except Exception as e:
-                        print(f"{e}. color: {player.color}. position: {player.position}, radius: {player.radius}, alive: {player.alive}")
+                        print(f"{e}. xys: {xys} render output max: {self.render_output[i].max()} min: {self.render_output[i].min()} color: {player.color}. position: {player.position}, radius: {player.radius}, alive: {player.alive}")
                         import traceback
 
                         print(traceback.format_exc())
@@ -145,3 +169,4 @@ class Gym_Env(Playable_Game):
             if self.remaining_players[i]-self.wall_nums[i] < self.players_per_side[i]*self.min_frac:
                 return True
         return False
+        #wrong guys seem to be dying

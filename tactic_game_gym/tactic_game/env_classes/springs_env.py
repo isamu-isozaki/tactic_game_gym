@@ -7,7 +7,7 @@ class Setup_Springs(Setup_Web):
     def get_spring(self, player, epsilon=10**-50):
         web, mag = self.get_web_and_mag(player)
         if web is None:
-            return np.asarray([0,0], dtype=np.float16)
+            return np.asarray([0,0], dtype=np.float32)
         player_velocity = self.board_sight[player.id, 2:4].copy()
         player_k = self.k_ids[player.id].copy()
         sub_ids = player.sub_ids
@@ -22,7 +22,7 @@ class Setup_Springs(Setup_Web):
         elif player.sub_ids == None:
             ks = player_k
         else:
-            ks = np.concatenate([np.asarray([player_k], dtype=np.float16), sub_k], axis=0)
+            ks = np.concatenate([np.asarray([player_k], dtype=np.float32), sub_k], axis=0)
             alive = np.concatenate([[self.return_alive(player.superior_id)], self.return_alive(player.sub_ids)], axis=0)
             ks = ks[alive==1]
 
@@ -132,12 +132,12 @@ class Setup_Springs(Setup_Web):
             ks = ks[alive==1]
             ms = ms[alive==1]
         elif player.sub_ids == None:
-            ks = np.array([player_k], dtype=np.float16)
-            ms = np.array([superior_mass], dtype=np.float16)
+            ks = np.array([player_k], dtype=np.float32)
+            ms = np.array([superior_mass], dtype=np.float32)
         else:
-            ks = np.concatenate([np.asarray([player_k], dtype=np.float16), sub_k], axis=0)
-            ms = np.concatenate([np.asarray([superior_mass], dtype=np.float16), sub_masses], axis=0)
-            alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)], dtype=np.float16), self.return_alive(np.asarray(player.sub_ids, dtype=np.float16))], axis=0)
+            ks = np.concatenate([np.asarray([player_k], dtype=np.float32), sub_k], axis=0)
+            ms = np.concatenate([np.asarray([superior_mass], dtype=np.float32), sub_masses], axis=0)
+            alive = np.concatenate([np.asarray([self.return_alive(player.superior_id)], dtype=np.float32), self.return_alive(np.asarray(player.sub_ids, dtype=np.float32))], axis=0)
             ks = ks[alive==1]
             ms = ms[alive==1]
         return ks, ms
