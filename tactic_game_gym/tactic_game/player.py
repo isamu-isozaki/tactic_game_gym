@@ -13,7 +13,7 @@ class Player:
 		self.side = player_side
 		self.type=-1
 		self.mass = 1
-		self.position = np.zeros(2, dtype=np.float16)
+		self.position = np.zeros(2, dtype=np.float32)
 		self.alive = True
 		self.player_name = ""
 		self.force = None
@@ -36,7 +36,7 @@ class Player:
 		self.sight = None
 		self.force_prop = None
 		self.k=1.
-		self.velocity = np.array([0,0], dtype=np.float16)
+		self.velocity = np.array([0,0], dtype=np.float32)
 		self.vel = None
 		self.angle = [0,0]
 		self.height = 0

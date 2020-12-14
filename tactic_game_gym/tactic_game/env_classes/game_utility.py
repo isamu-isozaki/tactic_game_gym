@@ -34,8 +34,8 @@ class Move(Setup_Rotate_Force):
                 force = forces[k]
                 if self.use_spring:
                     force += self.get_spring(player)
-                
-                force = self.rotate_force(player, force, z[k])
+                #Return later
+                #force = self.rotate_force(player, force, z[k])
 
                 try:
                     self.player_array[i][j].apply_force(force, self.current_balls[k])
@@ -51,12 +51,19 @@ class Move(Setup_Rotate_Force):
                     self.vel_mags[id] = 0
                     continue
                 position = self.current_balls[k].body._get_position()
-                velocity = np.asarray(self.current_balls[k].body._get_velocity(), dtype=np.float16)
                 speed = self.current_balls[k].body.velocity.length
+                velocity = np.asarray(self.current_balls[k].body._get_velocity(), dtype=np.float32)
+                if speed > self.max_speed:
+                    if speed == np.inf:
+                        print(f"speed for player {i} {j} is infinity")
+                    velocity /= speed
+                    velocity *= self.max_speed
+                    self.current_balls[k].body._set_velocity(velocity.tolist())
+                    speed = self.max_speed
                 self.player_array[i][j].speed = speed
                 self.vel_mags[id] = speed
                 self.player_array[i][j].vel = [self.player_array[i][j].position, self.player_array[i][j].position+velocity]
-                self.player_array[i][j].position = np.array(position, dtype=np.float16)
+                self.player_array[i][j].position = np.array(position, dtype=np.float32)
                 self.player_array[i][j].velocity = velocity
                 k += 1
 
@@ -76,7 +83,7 @@ class Mobilize(Move):
         # 	if not os.path.exists( self.base_directory   + "/animation"):
         # 			os.makedirs( self.base_directory   + "/animation")
         # 	folders = os.listdir(self.base_directory + "/animation")
-        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float32)
         for t in tqdm(itertools.count()):
             try:
                 for event in pygame.event.get():
@@ -95,6 +102,20 @@ class Mobilize(Move):
 class Attack(Mobilize):
     def __init__(self, **kwargs):
         Mobilize.__init__(self, **kwargs)
+    def remove_glitched_players(self):
+        for i in range(self.sides):
+            for j in range(self.players_per_side[i]):
+                player = self.player_array[i][j]
+                if player.alive:
+                    pos = player.position
+                    if (0<= int(pos[0]) <= self.board_size[0]) and (0<= int(pos[1]) <= self.board_size[1]):
+                        continue
+                    else:
+                        print(f"Glitched player at {pos}")
+                        self.player_array[i][j].damage(player.hp)
+                        self.player_array[i][j].alive = False
+                        self.remaining_players[i] -= 1
+                        continue
     def attack(self, epsilon=1e-5):
         # Change attack to constant size
         INF = 10**5
@@ -115,7 +136,7 @@ class Attack(Mobilize):
         positions = positions[living]
         velocities = velocities[living]
         num_players = np.sum(self.remaining_players)
-        attacked = np.zeros(num_players, dtype=np.float16)
+        attacked = np.zeros(num_players, dtype=np.float32)
         mags_temp = mags.copy()
         mags_temp[mags_temp == 0] = 1
         cos_sin = (velocities) / (mags_temp[:, None])
@@ -212,9 +233,9 @@ class Attack(Mobilize):
             self.attacked[i] = attacked_sum - self.attacked[i]
         k = 0
         temp_rewards = dict(self.hard_coded_rewards)
-        temp_dead = np.zeros(self.sides, dtype=np.float16)
-        temp_rewards['damage'] = np.zeros(self.sides, dtype=np.float16)
-        temp_rewards['seen'] = np.zeros(self.sides, dtype=np.float16)
+        temp_dead = np.zeros(self.sides, dtype=np.float32)
+        temp_rewards['damage'] = np.zeros(self.sides, dtype=np.float32)
+        temp_rewards['seen'] = np.zeros(self.sides, dtype=np.float32)
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if not self.player_array[i][j].alive:
@@ -238,6 +259,7 @@ class Attack(Mobilize):
             self.hard_coded_rewards['seen'][i] += total_seen - 2*temp_rewards['seen'][i]#how many more were seen on your side
             #Overall, becomes a zero sum game
             #self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
+        self.remove_glitched_players()
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if self.player_array[i][j].alive and self.player_array[i][j].id in alive:
@@ -245,6 +267,8 @@ class Attack(Mobilize):
         for id in alive:#all dead
             self.space.remove(self.balls[id], self.balls[id].body)
             self.current_balls.remove(self.balls[id])
+
+
 
         self.set_board()
         self.attack_turn += 1
@@ -333,7 +357,7 @@ class Playable_Game(Attack):
         
         
     def init_env(self):
-        self.vel_mags = np.zeros(self.player_num, dtype=np.float16)
+        self.vel_mags = np.zeros(self.player_num, dtype=np.float32)
         self.start_pos = None
     def run_env(self):
         """
