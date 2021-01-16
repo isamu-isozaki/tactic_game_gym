@@ -67,7 +67,7 @@ class Setup_Var_Init(Map_Env):
         #     self.obs[i, ...,  0] = cv2.resize(self.obs_full[i, ..., 0].astype(np.float32), (self.obs_board_size, self.obs_board_size)).astype(np.float32)
         self.dead = np.zeros(self.sides, dtype=np.float32)#the amount that died during the current time step for all sides
         self.rewards = np.zeros(self.sides, dtype=np.float32)#the amount that died for other sides
-        self.hard_coded_rewards = {'death_offset': np.zeros(self.sides, dtype=np.float32), 'damage': np.zeros(self.sides, dtype=np.float32), 'seen': np.zeros(self.sides, dtype=np.float32)}
+        self.hard_coded_rewards = {'r_death_offset': np.zeros(self.sides, dtype=np.float32), 'r_damage': np.zeros(self.sides, dtype=np.float32), 'r_seen': np.zeros(self.sides, dtype=np.float32)}
 
         #Setting up observation and action space
         self.action_space = spaces.MultiDiscrete([5 for _ in range(self.act_board_size*self.act_board_size*self.num_types)])

@@ -26,25 +26,36 @@ class Gym_Env(Playable_Game):
         self.finished_sides[...] = 0
         self.get_sight()
         dones = [done for _ in range(self.sides)]
+        winning_rewards = np.zeros(self.sides)
         if done:
             self.remaining_players = np.array(self.remaining_players)
-            winning_side = np.where(self.remaining_players == self.remaining_players.max())
-            for i in range(self.sides):
-                if i==winning_side:
-                    self.rewards[winning_side] += self.win_reward#Currently winning is worth eliminating 100 more agents
-                else:
-                    self.rewards[i] -= self.win_reward
+            winning_side = np.where(self.remaining_players == self.remaining_players.max())[0]
+            try:
+                for i in range(self.sides):
+                    if i==winning_side:
+                        self.rewards[winning_side] += self.win_reward#Currently winning is worth eliminating 100 more agents
+                        winning_rewards[i] += self.win_reward
+                    else:
+                        self.rewards[i] -= self.win_reward
+                        winning_rewards[i] -= self.win_reward
+
+                    
+            except Exception as e:
+                print(f"{e}. Winning side: {winning_side}.")
+                self.rewards[:] = 0
         if self.is_train:
             if (self.stage != self.act_board_size) and ((self.total_moves+1) % self.stage_update_num == 0):
                 if self.log:
                     print(f"stage is {self.stage}")
                 self.stage *= 2
             self.total_moves += 1
-        # print(f"update step: self.obs: {self.obs.mean()} self.rewards: {self.rewards.mean()} dead players: {self.dead} damage sides: {self.damage_sides} seen: {self.seen}")
-        self.rewards *= (1-hard_code_rate)
-        self.rewards += hard_code_rate*(self.hard_coded_rewards["death_offset"] + self.damage_reward_frac*self.hard_coded_rewards["damage"]+self.seen_reward_frac*self.hard_coded_rewards["seen"])
+        if self.dense_rewards:
+            # print(f"update step: self.obs: {self.obs.mean()} self.rewards: {self.rewards.mean()} dead players: {self.dead} r_damage sides: {self.r_damage_sides} r_seen: {self.r_seen}")
+            self.rewards *= (1-hard_code_rate)
+            self.rewards += hard_code_rate*(self.hard_coded_rewards["r_death_offset"] + self.r_damage_reward_frac*self.hard_coded_rewards["r_damage"]+self.r_seen_reward_frac*self.hard_coded_rewards["r_seen"])
         rewards = {"r": self.rewards}
         rewards.update(self.hard_coded_rewards)
+        rewards.update({"r_winning": winning_rewards})
         infos = [{"episode": {key: rewards[key][i] for key in rewards}} for i in range(self.sides)]
         for i in range(self.sides):
             infos[i]["episode"]["hard_code_rate"] = hard_code_rate

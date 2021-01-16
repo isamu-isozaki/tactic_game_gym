@@ -12,6 +12,7 @@ from matplotlib.patches import Circle
 
 import pygame
 from pygame.locals import *
+import cv2
 
 def sort_array(arr1, arr2):
     #sort the objects in arr1 according to the indices of arr2
@@ -26,13 +27,14 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         Final_Var_Setup.__init__(self, **kwargs)
         if self.show:
             pygame.init()
-            self.screen = pygame.display.set_mode(self.board_size)
+            self.screen = pygame.display.set_mode([self.game_size, self.game_size])
             self.clock = pygame.time.Clock()
-            self.surf = pygame.surfarray.make_surface(self.beautiful_map)
+            self.surf = pygame.surfarray.make_surface(cv2.resize(self.beautiful_map, tuple([self.game_size, self.game_size]), interpolation=cv2.INTER_CUBIC))
             if self.log:
                 print(f"Finished generating pygame surface: {time.time()-self.start}")
     def switch_to_pymunk(self, xy):
-        return [xy[0], -xy[1]+self.board_size[0]]
+        output = list(xy).copy()
+        return [output[0], -output[1]+self.board_size[0]]
     def start_game(self):
         self.space = pymunk.Space()
         self.space.gravity = (0.0,0.0)
@@ -93,8 +95,8 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         self.started = True
     def interact_move(self, start_pos, end_pos, epsilon=1e-10):
         steps = self.vec_steps
-        start_pos = np.array(self.switch_to_pymunk(start_pos), dtype=np.float32)
-        end_pos = np.array(self.switch_to_pymunk(end_pos), dtype=np.float32)
+        start_pos = np.array(self.switch_to_pymunk(start_pos), dtype=np.float32)*self.board_size[0]/self.game_size
+        end_pos = np.array(self.switch_to_pymunk(end_pos), dtype=np.float32)*self.board_size[0]/self.game_size
         movement = end_pos-start_pos
         mag_div = self.board_size*self.vec_mag_div_constant_frac
         movement /= mag_div
@@ -122,7 +124,7 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
         
         try:
             self.move_board[self.interact_side,self.type_to_index[self.interact_type], valid_mask] += np.einsum("...,i->...i", output, movement)[valid_mask]
-            self.move_board *= 1./(np.abs(self.move_board+epsilon).max())
+            self.move_board[self.interact_side,self.type_to_index[self.interact_type], valid_mask] *= 1./(np.abs(self.move_board[self.interact_side,self.type_to_index[self.interact_type], valid_mask]+epsilon).max())
         except Exception as e:
             if self.log:
                 print(f"{e}, move board shape: {self.move_board[self.interact_side,self.interact_type,valid_mask].shape}, output shape: {output.shape}, movement shape: {movement.shape}")
@@ -149,14 +151,20 @@ class Setup_Pygame_Pymunk(Final_Var_Setup):
                         if np.isnan(y[0]):
                             y = x.copy()
                         x = self.switch_to_pymunk(x)
+                        x[0] *= self.game_size/self.board_size[0]
+                        x[1] *= self.game_size/self.board_size[0]
                         y = self.switch_to_pymunk(y)
+                        y[0] *= self.game_size/self.board_size[1]
+                        y[1] *= self.game_size/self.board_size[1]
+
+
                         hp = player.hp
                         opacity = hp/(self.hp*2)
                         opacity = 1 if opacity > 1 else opacity
                         opactiy = 0 if opacity is None else opacity
                         color_player = list(player.color[:3]) + [int(255*opacity)]
                         #This is a problem. Pygame only supports integers. Thus, animations won't be fluid
-                        pygame.draw.circle(self.screen, color_player,self.switch_to_pymunk([int(player.position[0]), int(player.position[1])]), int(player.radius) if int(player.radius) > 0 else 1)
+                        pygame.draw.circle(self.screen, color_player,[int(x[0]), int(x[1])], int(player.radius*self.game_size/self.board_size[0]) if int(player.radius*self.game_size/self.board_size[0]) > 0 else int(self.game_size/self.board_size[0]))
                         
                         # font = pygame.font.SysFont(None, 24)
                         # img = font.render(f'{player.id}', True, color_player)

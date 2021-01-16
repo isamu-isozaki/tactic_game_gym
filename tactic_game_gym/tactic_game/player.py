@@ -54,10 +54,10 @@ class Player:
 			print(f"{e}. force:{force}")
 
 
-	def damage(self, damage):
+	def r_damage(self, r_damage):
 		if not self.alive:
 			return False
-		self.hp -= damage
+		self.hp -= r_damage
 		if self.hp < 0:
 			self.alive = False
 			return False

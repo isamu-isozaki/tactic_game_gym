@@ -112,7 +112,7 @@ class Attack(Mobilize):
                         continue
                     else:
                         print(f"Glitched player at {pos}")
-                        self.player_array[i][j].damage(player.hp)
+                        self.player_array[i][j].r_damage(player.hp)
                         self.player_array[i][j].alive = False
                         self.remaining_players[i] -= 1
                         continue
@@ -190,9 +190,9 @@ class Attack(Mobilize):
         self.attacked_dist[...] = 0
         self.can_see[...] = 0
         if self.init_reward:
-            self.hard_coded_rewards['death_offset'][...] = 0
-            self.hard_coded_rewards['damage'][...] = 0
-            self.hard_coded_rewards['seen'][...] = 0
+            self.hard_coded_rewards['r_death_offset'][...] = 0
+            self.hard_coded_rewards['r_damage'][...] = 0
+            self.hard_coded_rewards['r_seen'][...] = 0
             self.dead[...] = 0
             self.rewards[...] = 0
             self.init_reward = False
@@ -203,7 +203,7 @@ class Attack(Mobilize):
                 if not player.alive:
                     continue
                 k += 1
-                """self.attacked[i] denotes the amount of damage the side i inflicts on the other sides"""
+                """self.attacked[i] denotes the amount of r_damage the side i inflicts on the other sides"""
                 
                 living_k = living.copy()
                 living_k[living_k] = masks[k]
@@ -219,7 +219,7 @@ class Attack(Mobilize):
         #if self.log:
         # print(self.attacked)
         self.attacked_dist = self.attacked.copy()
-        #self.attacked contains damaged done from side i on all players
+        #self.attacked contains r_damaged done from side i on all players
         self.can_see = self.attacked > 0
         for i in range(self.sides):
             self.can_see[i] = self.can_see[i] | (self.player_sides == i)
@@ -234,29 +234,29 @@ class Attack(Mobilize):
         k = 0
         temp_rewards = dict(self.hard_coded_rewards)
         temp_dead = np.zeros(self.sides, dtype=np.float32)
-        temp_rewards['damage'] = np.zeros(self.sides, dtype=np.float32)
-        temp_rewards['seen'] = np.zeros(self.sides, dtype=np.float32)
+        temp_rewards['r_damage'] = np.zeros(self.sides, dtype=np.float32)
+        temp_rewards['r_seen'] = np.zeros(self.sides, dtype=np.float32)
         for i in range(self.sides):
             for j in range(self.players_per_side[i]):
                 if not self.player_array[i][j].alive:
                     continue
                 player_id = self.player_array[i][j].id
                 player_hp = self.player_array[i][j].hp
-                player_alive = self.player_array[i][j].damage(self.attacked[i][player_id]+self.continue_penalty)
-                temp_rewards['damage'][i] += np.min([self.attacked[i][player_id], player_hp])
-                temp_rewards['seen'][i] += 1 if self.attacked[i][player_id] > 0 else 0
+                player_alive = self.player_array[i][j].r_damage(self.attacked[i][player_id]+self.continue_penalty)
+                temp_rewards['r_damage'][i] += np.min([self.attacked[i][player_id], player_hp])
+                temp_rewards['r_seen'][i] += 1 if self.attacked[i][player_id] > 0 else 0
                 if not player_alive:
                     temp_dead[i] += 1
                     self.remaining_players[i] -= 1
                 k += 1
         total_death = np.sum(temp_dead)
-        total_damage = np.sum(temp_rewards['damage'])
-        total_seen = np.sum(temp_rewards['seen'])
+        total_r_damage = np.sum(temp_rewards['r_damage'])
+        total_r_seen = np.sum(temp_rewards['r_seen'])
 
         for i in range(self.sides):
-            self.hard_coded_rewards['death_offset'][i] += total_death - 2*temp_dead[i]#how many more died then your side
-            self.hard_coded_rewards['damage'][i] += total_damage - 2*temp_rewards['damage'][i]#how much more damage occured on your side
-            self.hard_coded_rewards['seen'][i] += total_seen - 2*temp_rewards['seen'][i]#how many more were seen on your side
+            self.hard_coded_rewards['r_death_offset'][i] += total_death - 2*temp_dead[i]#how many more died then your side
+            self.hard_coded_rewards['r_damage'][i] += total_r_damage - 2*temp_rewards['r_damage'][i]#how much more r_damage occured on your side
+            self.hard_coded_rewards['r_seen'][i] += total_r_seen - 2*temp_rewards['r_seen'][i]#how many more were r_seen on your side
             #Overall, becomes a zero sum game
             #self.rewards[i] *= 1 if self.rewards[i] > 0 else self.penalty_discount
         self.remove_glitched_players()
